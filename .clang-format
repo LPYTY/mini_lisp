@@ -1,0 +1,10 @@
+BasedOnStyle: Google
+AccessModifierOffset: -4
+IndentWidth: 4
+TabWidth: 4
+ColumnLimit: 100
+PointerAlignment: Left
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowAllArgumentsOnNextLine: true
