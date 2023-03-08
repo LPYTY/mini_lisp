@@ -5,7 +5,8 @@
 
 using namespace std::literals;
 
-TokenPtr Token::fromChar(char c) {
+TokenPtr Token::fromChar(char c) 
+{
     TokenType type;
     switch (c) {
         case '(': type = TokenType::LEFT_PAREN; break;
@@ -19,12 +20,15 @@ TokenPtr Token::fromChar(char c) {
     return TokenPtr(new Token(type));
 }
 
-TokenPtr Token::dot() {
+TokenPtr Token::dot() 
+{
     return TokenPtr(new Token(TokenType::DOT));
 }
 
-std::string Token::toString() const {
-    switch (type) {
+std::string Token::toString() const 
+{
+    switch (type) 
+    {
         case TokenType::LEFT_PAREN: return "(LEFT_PAREN)"; break;
         case TokenType::RIGHT_PAREN: return "(RIGHT_PAREN)"; break;
         case TokenType::QUOTE: return "(QUOTE)"; break;
@@ -35,34 +39,45 @@ std::string Token::toString() const {
     }
 }
 
-std::unique_ptr<BooleanLiteralToken> BooleanLiteralToken::fromChar(char c) {
-    if (c == 't') {
+std::unique_ptr<BooleanLiteralToken> BooleanLiteralToken::fromChar(char c) 
+{
+    if (c == 't') 
+    {
         return std::make_unique<BooleanLiteralToken>(true);
-    } else if (c == 'f') {
+    }
+    else if (c == 'f') 
+    {
         return std::make_unique<BooleanLiteralToken>(false);
-    } else {
+    } 
+    else 
+    {
         return nullptr;
     }
 }
 
-std::string BooleanLiteralToken::toString() const {
+std::string BooleanLiteralToken::toString() const 
+{
     return "(BOOLEAN_LITERAL "s + (value ? "true" : "false") + ")";
 }
 
-std::string NumericLiteralToken::toString() const {
+std::string NumericLiteralToken::toString() const 
+{
     return "(NUMERIC_LITERAL " + std::to_string(value) + ")";
 }
 
-std::string StringLiteralToken::toString() const {
+std::string StringLiteralToken::toString() const 
+{
     std::ostringstream ss;
     ss << "(STRING_LITERAL " << std::quoted(value) << ")";
     return ss.str();
 }
 
-std::string IdentifierToken::toString() const {
+std::string IdentifierToken::toString() const 
+{
     return "(IDENTIFIER " + name + ")";
 }
 
-std::ostream& operator<<(std::ostream& os, const Token& token) {
+std::ostream& operator<<(std::ostream& os, const Token& token) 
+{
     return os << token.toString();
 }
