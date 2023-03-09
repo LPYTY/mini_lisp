@@ -8,7 +8,8 @@ using namespace std::literals;
 TokenPtr Token::fromChar(char c) 
 {
     TokenType type;
-    switch (c) {
+    switch (c) 
+    {
         case '(': type = TokenType::LEFT_PAREN; break;
         case ')': type = TokenType::RIGHT_PAREN; break;
         case '\'': type = TokenType::QUOTE; break;

@@ -24,6 +24,9 @@
     <ClCompile Include="tokenizer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Value.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="error.h">
@@ -33,6 +36,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="tokenizer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Value.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
