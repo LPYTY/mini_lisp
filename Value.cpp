@@ -11,7 +11,7 @@ string BooleanValue::toString() const
     return bValue ? "#t" : "#f";
 }
 
-string BooleanValue::type() const
+string BooleanValue::getTypeName() const
 {
     return "BOOLEAN VALUE";
 }
@@ -26,7 +26,7 @@ string NumericValue::toString() const
     return isInteger() ? to_string(static_cast<int>(dValue)) : to_string(dValue);
 }
 
-string NumericValue::type() const
+string NumericValue::getTypeName() const
 {
     return "NUMERIC VALUE";
 }
@@ -36,7 +36,7 @@ string StringValue::toString() const
     return '"' + szValue + '"';
 }
 
-string StringValue::type() const
+string StringValue::getTypeName() const
 {
     return "STRING VALUE";
 }
@@ -46,14 +46,14 @@ string NilValue::toString() const
     return "()";
 }
 
-string NilValue::type() const
+string NilValue::getTypeName() const
 {
     return "NIL VALUE";
 }
 
-ValueList NilValue::toList() const
+string NilValue::extractString(bool isOnRight) const
 {
-    return ValueList();
+    return "";
 }
 
 string SymbolValue::toString() const
@@ -61,42 +61,27 @@ string SymbolValue::toString() const
     return szSymbolName;
 }
 
-string SymbolValue::type() const
+string SymbolValue::getTypeName() const
 {
     return "SYMBOL VALUE";
 }
 
 string PairValue::toString() const
 {
-    string ret = "(";
-    ValueList vList = toList();
-    size_t len = vList.size();
-    for (size_t i = 0; i < len; i++)
-    {
-        ret += vList[i]->toString();
-        if (i + 1 < len)
-            ret += ' ';
-    }
-    ret += ')';
-    return ret;
+    return '(' + extractString(false) + ')';
 }
 
-string PairValue::type() const
+string PairValue::getTypeName() const
 {
     return "PAIR VALUE";
 }
 
-ValueList PairValue::toList() const
+string PairValue::extractString(bool isOnRight) const
 {
-    ValueList leftList = pLeftValue->toList(),
-        rightList = pRightValue->toList();
-    leftList.insert(leftList.end(), rightList.begin(), rightList.end());
-    return leftList;
+    return (isOnRight ? " " : "") + pLeftValue->extractString(false) + pRightValue->extractString(true);
 }
 
-ValueList Value::toList() const
+string Value::extractString(bool isOnRight) const
 {
-    ValueList ret;
-    ret.push_back(shared_from_this());
-    return ret;
+    return (isOnRight ? ". " : "") + toString();
 }

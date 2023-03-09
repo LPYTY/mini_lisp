@@ -20,8 +20,8 @@ class Value
     friend ostream& operator<<(ostream& os, const Value& thisValue);
 public:
     virtual string toString() const = 0;
-    virtual string type() const = 0;
-    virtual ValueList toList() const;
+    virtual string getTypeName() const = 0;
+    virtual string extractString(bool isOnRight) const;
 protected:
     Value() {}
 };
@@ -34,7 +34,7 @@ public:
     BooleanValue(bool b) 
         :bValue{ b } {}
     string toString() const override;
-    string type() const override;
+    string getTypeName() const override;
 };
 
 class NumericValue
@@ -47,7 +47,7 @@ public:
     NumericValue(double d)
         :dValue{ d } {}
     string toString() const override;
-    string type() const override;
+    string getTypeName() const override;
 };
 
 class StringValue
@@ -58,7 +58,7 @@ public:
     StringValue(const string& s)
         :szValue{ s } {}
     string toString() const override;
-    string type() const override;
+    string getTypeName() const override;
 };
 
 class NilValue
@@ -67,8 +67,9 @@ class NilValue
 public:
     NilValue() = default;
     string toString() const override;
-    string type() const override;
-    ValueList toList() const override;
+    string getTypeName() const override;
+protected:
+    string extractString(bool isOnRight) const override;
 };
 
 class SymbolValue
@@ -79,7 +80,7 @@ public:
     SymbolValue(const string& name)
         :szSymbolName{ name } {}
     string toString() const override;
-    string type() const override;
+    string getTypeName() const override;
 };
 
 class PairValue
@@ -91,8 +92,9 @@ public:
     PairValue(ValuePtr pLeft, ValuePtr pRight)
         :pLeftValue{ pLeft }, pRightValue{ pRight } {}
     string toString() const override;
-    string type() const override;
-    ValueList toList() const override;
+    string getTypeName() const override;
+protected:
+    string extractString(bool isOnRight) const override;
 };
 
 #endif
