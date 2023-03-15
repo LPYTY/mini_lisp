@@ -7,7 +7,8 @@ Parser::Parser(TokenList&& tokenList)
 
 ValuePtr Parser::parse()
 {
-    auto& token = tokens.front();
+    auto token = std::move(tokens.front());
+    tokens.pop_front();
     switch (token->getType())
     {
     case TokenType::NUMERIC_LITERAL:
@@ -34,9 +35,46 @@ ValuePtr Parser::parse()
         return std::make_shared<SymbolValue>(value);
         break;
     }
+    case TokenType::LEFT_PAREN:
+    {
+        return parseTails();
+        break;
+    }
     default:
         throw SyntaxError("Unimplemented");
         break;
     }
     return ValuePtr();
+}
+
+TokenPtr& Parser::getNextToken()
+{
+    if (tokens.empty())
+        throw SyntaxError("More token(s) expected");
+    return tokens.front();
+}
+
+ValuePtr Parser::parseTails()
+{
+    if (getNextToken()->getType() == TokenType::RIGHT_PAREN)
+    {
+        tokens.pop_front();
+        return make_shared<NilValue>();
+    }
+    auto car = parse();
+    ValuePtr cdr;
+    if (getNextToken()->getType() == TokenType::DOT)
+    {
+        tokens.pop_front();
+        cdr = parse();
+        if (getNextToken()->getType() != TokenType::RIGHT_PAREN)
+        {
+            throw SyntaxError("Right paren expected");
+        }
+    }
+    else
+    {
+        cdr = parseTails();
+    }
+    return make_shared<PairValue>(car, cdr);
 }

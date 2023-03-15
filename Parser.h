@@ -1,16 +1,14 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <list>
 #include <deque>
 #include <memory>
-#include <type_traits>
 
 #include ".\token.h"
 #include ".\Value.h"
 #include ".\error.h"
 
-using std::list, std::deque, std::unique_ptr, std::derived_from;
+using std::deque, std::make_shared;
 
 using TokenList = deque<TokenPtr>;
 
@@ -20,6 +18,9 @@ class Parser
 public:
     Parser(TokenList&& tokenList);
     ValuePtr parse();
+private:
+    TokenPtr& getNextToken();
+    ValuePtr parseTails();
 };
 
 #endif

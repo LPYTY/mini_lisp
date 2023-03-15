@@ -83,5 +83,5 @@ string PairValue::extractString(bool isOnRight) const
 
 string Value::extractString(bool isOnRight) const
 {
-    return (isOnRight ? ". " : "") + toString();
+    return (isOnRight ? " . " : "") + toString();
 }
