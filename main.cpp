@@ -2,8 +2,10 @@
 #include <string>
 
 #include "./tokenizer.h"
+#include "./value.h"
+#include "./parser.h"
 
-int prev_main() 
+int main() 
 {
     while (true) 
     {
@@ -17,10 +19,9 @@ int prev_main()
                 std::exit(0);
             }
             auto tokens = Tokenizer::tokenize(line);
-            for (auto& token : tokens) 
-            {
-                std::cout << *token << std::endl;
-            }
+            Parser parser(std::move(tokens)); // TokenPtr 不支持复制
+            auto value = parser.parse();
+            std::cout << value->toString() << std::endl; // 输出外部表示
         }
         catch (std::runtime_error& e)
         {
@@ -30,10 +31,10 @@ int prev_main()
 }
 
 #include <iostream>
-#include "./value.h"
+
 
 //using ValuePtr = std::shared_ptr<Value>; // 把这个添加到 value.h，可以减少许多重复的代码。
-int main() {
+int main_1() {
     ValuePtr a = std::make_shared<NumericValue>(42);
     ValuePtr b = std::make_shared<BooleanValue>(false);
     ValuePtr c = std::make_shared<SymbolValue>("eq?");
@@ -52,4 +53,5 @@ int main() {
         << d->toString() << '\n'
         << e->toString() << '\n'
         << f->toString() << std::endl;
+    return 0;
 }

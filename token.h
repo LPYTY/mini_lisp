@@ -8,6 +8,7 @@
 
 enum class TokenType 
 {
+    UNDEFINED,
     LEFT_PAREN,
     RIGHT_PAREN,
     QUOTE,

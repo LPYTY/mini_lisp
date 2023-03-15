@@ -3,27 +3,24 @@
 
 #include <iostream>
 #include <string>
-#include <vector>
 #include <memory>
 
-using std::ostream, std::endl, std::string, std::vector, std::to_string, std::shared_ptr, std::weak_ptr, std::make_shared, std::enable_shared_from_this;
+using std::ostream, std::endl, std::string, std::to_string, std::shared_ptr;
 
 class Value;
 
 using ValuePtr = shared_ptr<Value>;
-using ReadOnlyPtr = shared_ptr<const Value>;
-using ValueList = vector<ReadOnlyPtr>;
 
 class Value
-    :public enable_shared_from_this<Value>
 {
     friend ostream& operator<<(ostream& os, const Value& thisValue);
+    friend class PairValue;
 public:
     virtual string toString() const = 0;
-    virtual string getTypeName() const = 0;
-    virtual string extractString(bool isOnRight) const;
+    virtual string getTypeName() const = 0; 
 protected:
     Value() {}
+    virtual string extractString(bool isOnRight) const;
 };
 
 class BooleanValue

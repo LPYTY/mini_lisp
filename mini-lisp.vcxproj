@@ -75,12 +75,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Parser.cpp" />
     <ClCompile Include="token.cpp" />
     <ClCompile Include="tokenizer.cpp" />
     <ClCompile Include="Value.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="error.h" />
+    <ClInclude Include="Parser.h" />
     <ClInclude Include="token.h" />
     <ClInclude Include="tokenizer.h" />
     <ClInclude Include="Value.h" />
