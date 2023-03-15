@@ -7,8 +7,7 @@ Parser::Parser(TokenList&& tokenList)
 
 ValuePtr Parser::parse()
 {
-    auto token = std::move(tokens.front());
-    tokens.pop_front();
+    auto&& token = popNextToken();
     switch (token->getType())
     {
     case TokenType::NUMERIC_LITERAL:
@@ -40,11 +39,26 @@ ValuePtr Parser::parse()
         return parseTails();
         break;
     }
+    case TokenType::QUOTE:
+    case TokenType::QUASIQUOTE:
+    case TokenType::UNQUOTE:
+    {
+        return make_shared<PairValue>(substituteString(token),make_shared<PairValue>(parse(),make_shared<NilValue>()));
+    }
     default:
         throw SyntaxError("Unimplemented");
         break;
     }
     return ValuePtr();
+}
+
+TokenPtr Parser::popNextToken()
+{
+    if (tokens.empty())
+        throw SyntaxError("More token(s) expected");
+    auto nextToken = std::move(tokens.front());
+    tokens.pop_front();
+    return nextToken;
 }
 
 TokenPtr& Parser::getNextToken()
@@ -77,4 +91,31 @@ ValuePtr Parser::parseTails()
         cdr = parseTails();
     }
     return make_shared<PairValue>(car, cdr);
+}
+
+ValuePtr Parser::substituteString(TokenPtr& token) const
+{
+    string name;
+    switch (token->getType())
+    {
+    case TokenType::QUOTE:
+    {
+        name = "quote";
+        break;
+    }
+    case TokenType::QUASIQUOTE:
+    {
+        name = "quasiquote";
+        break;
+    }
+    case TokenType::UNQUOTE:
+    {
+        name = "unquote";
+        break;
+    }
+    default:
+        name = "";
+        break;
+    }
+    return make_shared<SymbolValue>(name);
 }

@@ -19,8 +19,10 @@ public:
     Parser(TokenList&& tokenList);
     ValuePtr parse();
 private:
+    TokenPtr popNextToken();
     TokenPtr& getNextToken();
     ValuePtr parseTails();
+    ValuePtr substituteString(TokenPtr& token) const;
 };
 
 #endif
