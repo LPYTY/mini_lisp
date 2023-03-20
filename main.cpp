@@ -5,8 +5,11 @@
 #include "./value.h"
 #include "./parser.h"
 
+int main_1();
+
 int main() 
 {
+    main_1();
     while (true) 
     {
         try 
@@ -53,5 +56,8 @@ int main_1() {
         << d->toString() << '\n'
         << e->toString() << '\n'
         << f->toString() << std::endl;
+    vector<ValuePtr> v = { a,b,c,d,e,f };
+    auto g = PairValue::fromVector(v);
+    std::cout << g->toString() << endl;
     return 0;
 }

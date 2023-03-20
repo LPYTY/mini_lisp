@@ -43,7 +43,7 @@ ValuePtr Parser::parse()
     case TokenType::QUASIQUOTE:
     case TokenType::UNQUOTE:
     {
-        return make_shared<PairValue>(substituteString(token),make_shared<PairValue>(parse(),make_shared<NilValue>()));
+        return make_shared<PairValue>(substituteSymbol(token),make_shared<PairValue>(parse(),make_shared<NilValue>()));
     }
     default:
         throw SyntaxError("Unimplemented");
@@ -93,7 +93,7 @@ ValuePtr Parser::parseTails()
     return make_shared<PairValue>(car, cdr);
 }
 
-ValuePtr Parser::substituteString(TokenPtr& token) const
+ValuePtr Parser::substituteSymbol(TokenPtr& token) const
 {
     string name;
     switch (token->getType())

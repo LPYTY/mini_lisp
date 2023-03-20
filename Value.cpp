@@ -76,6 +76,16 @@ string PairValue::getTypeName() const
     return "PAIR VALUE";
 }
 
+shared_ptr<PairValue> PairValue::fromVector(vector<ValuePtr>& v)
+{
+    return fromIter(v.begin(), v.end());
+}
+
+shared_ptr<PairValue> PairValue::fromDeque(deque<ValuePtr>& q)
+{
+    return fromIter(q.begin(), q.end());
+}
+
 string PairValue::extractString(bool isOnRight) const
 {
     return (isOnRight ? " " : "") + pLeftValue->extractString(false) + pRightValue->extractString(true);

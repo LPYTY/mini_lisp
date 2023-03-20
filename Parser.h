@@ -22,7 +22,7 @@ private:
     TokenPtr popNextToken();
     TokenPtr& getNextToken();
     ValuePtr parseTails();
-    ValuePtr substituteString(TokenPtr& token) const;
+    ValuePtr substituteSymbol(TokenPtr& token) const;
 };
 
 #endif
