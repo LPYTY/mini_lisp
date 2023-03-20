@@ -1,4 +1,4 @@
-#include "Value.h"
+#include "./value.h"
 
 ostream& operator<<(ostream& os, const Value& thisValue)
 {
@@ -51,6 +51,11 @@ string NilValue::getTypeName() const
     return "NIL VALUE";
 }
 
+bool NilValue::isNil() const
+{
+    return true;
+}
+
 string NilValue::extractString(bool isOnRight) const
 {
     return "";
@@ -91,7 +96,22 @@ string PairValue::extractString(bool isOnRight) const
     return (isOnRight ? " " : "") + pLeftValue->extractString(false) + pRightValue->extractString(true);
 }
 
+bool Value::isSelfEvaluating() const
+{
+    return false;
+}
+
+bool Value::isNil() const
+{
+    return false;
+}
+
 string Value::extractString(bool isOnRight) const
 {
     return (isOnRight ? " . " : "") + toString();
+}
+
+bool SelfEvaluatingValue::isSelfEvaluating() const
+{
+    return true;
 }

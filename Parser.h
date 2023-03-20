@@ -4,9 +4,9 @@
 #include <deque>
 #include <memory>
 
-#include ".\token.h"
-#include ".\Value.h"
-#include ".\error.h"
+#include "./token.h"
+#include "./value.h"
+#include "./error.h"
 
 using std::deque, std::make_shared;
 

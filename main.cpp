@@ -4,12 +4,13 @@
 #include "./tokenizer.h"
 #include "./value.h"
 #include "./parser.h"
+#include "./eval_env.h"
 
 int main_1();
 
 int main() 
 {
-    main_1();
+    //main_1();
     while (true) 
     {
         try 
@@ -24,7 +25,9 @@ int main()
             auto tokens = Tokenizer::tokenize(line);
             Parser parser(std::move(tokens)); // TokenPtr 不支持复制
             auto value = parser.parse();
-            std::cout << value->toString() << std::endl; // 输出外部表示
+            EvalEnv env;
+            auto result = env.eval(std::move(value));
+            std::cout << result->toString() << std::endl; // 输出外部表示
         }
         catch (std::runtime_error& e)
         {

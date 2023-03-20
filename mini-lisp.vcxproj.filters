@@ -24,10 +24,13 @@
     <ClCompile Include="tokenizer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Value.cpp">
+    <ClCompile Include="value.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Parser.cpp">
+    <ClCompile Include="parser.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="eval_env.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -41,10 +44,13 @@
     <ClInclude Include="tokenizer.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Value.h">
+    <ClInclude Include="value.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Parser.h">
+    <ClInclude Include="parser.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="eval_env.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -21,13 +21,25 @@ class Value
 public:
     virtual string toString() const = 0;
     virtual string getTypeName() const = 0; 
+    virtual bool isSelfEvaluating() const;
+    virtual bool isNil() const;
 protected:
     Value() {}
     virtual string extractString(bool isOnRight) const;
+    virtual ~Value() = default;
+};
+
+class SelfEvaluatingValue
+    :public Value
+{
+protected:
+    SelfEvaluatingValue() {}
+public:
+    bool isSelfEvaluating() const override;
 };
 
 class BooleanValue
-    :public Value
+    :public SelfEvaluatingValue
 {
     bool bValue;
 public:
@@ -38,7 +50,7 @@ public:
 };
 
 class NumericValue
-    :public Value
+    :public SelfEvaluatingValue
 {
     double dValue;
 protected:
@@ -51,7 +63,7 @@ public:
 };
 
 class StringValue
-    :public Value
+    :public SelfEvaluatingValue
 {
     string szValue;
 public:
@@ -68,6 +80,7 @@ public:
     NilValue() = default;
     string toString() const override;
     string getTypeName() const override;
+    bool isNil() const override;
 protected:
     string extractString(bool isOnRight) const override;
 };
