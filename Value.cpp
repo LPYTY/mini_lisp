@@ -13,7 +13,7 @@ string BooleanValue::toString() const
 
 string BooleanValue::getTypeName() const
 {
-    return "BOOLEAN VALUE";
+    return "boolean value";
 }
 
 bool NumericValue::isInteger() const
@@ -28,7 +28,7 @@ string NumericValue::toString() const
 
 string NumericValue::getTypeName() const
 {
-    return "NUMERIC VALUE";
+    return "numeric value";
 }
 
 string StringValue::toString() const
@@ -38,7 +38,7 @@ string StringValue::toString() const
 
 string StringValue::getTypeName() const
 {
-    return "STRING VALUE";
+    return "string value";
 }
 
 string NilValue::toString() const
@@ -48,7 +48,7 @@ string NilValue::toString() const
 
 string NilValue::getTypeName() const
 {
-    return "NIL VALUE";
+    return "nil value";
 }
 
 bool NilValue::isNil() const
@@ -68,7 +68,12 @@ string SymbolValue::toString() const
 
 string SymbolValue::getTypeName() const
 {
-    return "SYMBOL VALUE";
+    return "symbol value";
+}
+
+optional<string> SymbolValue::asSymbol() const
+{
+    return szSymbolName;
 }
 
 string PairValue::toString() const
@@ -78,7 +83,7 @@ string PairValue::toString() const
 
 string PairValue::getTypeName() const
 {
-    return "PAIR VALUE";
+    return "pair value";
 }
 
 shared_ptr<PairValue> PairValue::fromVector(vector<ValuePtr>& v)
@@ -89,6 +94,18 @@ shared_ptr<PairValue> PairValue::fromVector(vector<ValuePtr>& v)
 shared_ptr<PairValue> PairValue::fromDeque(deque<ValuePtr>& q)
 {
     return fromIter(q.begin(), q.end());
+}
+
+bool PairValue::isList() const
+{
+    return true;
+}
+
+vector<ValuePtr> PairValue::toVector()
+{
+    vector<ValuePtr> leftVector = pLeftValue->toVector(), rightVector = pRightValue->toVector();
+    leftVector.insert(leftVector.end(), rightVector.begin(), rightVector.end());
+    return leftVector;
 }
 
 string PairValue::extractString(bool isOnRight) const
@@ -104,6 +121,21 @@ bool Value::isSelfEvaluating() const
 bool Value::isNil() const
 {
     return false;
+}
+
+bool Value::isList() const
+{
+    return false;
+}
+
+vector<ValuePtr> Value::toVector()
+{
+    return vector<ValuePtr>{shared_from_this()};
+}
+
+optional<string> Value::asSymbol() const
+{
+    return nullopt;
 }
 
 string Value::extractString(bool isOnRight) const

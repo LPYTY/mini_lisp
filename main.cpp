@@ -11,6 +11,7 @@ int main_1();
 int main() 
 {
     //main_1();
+    EvalEnv env;
     while (true) 
     {
         try 
@@ -25,7 +26,6 @@ int main()
             auto tokens = Tokenizer::tokenize(line);
             Parser parser(std::move(tokens)); // TokenPtr 不支持复制
             auto value = parser.parse();
-            EvalEnv env;
             auto result = env.eval(std::move(value));
             std::cout << result->toString() << std::endl; // 输出外部表示
         }
@@ -38,8 +38,6 @@ int main()
 
 #include <iostream>
 
-
-//using ValuePtr = std::shared_ptr<Value>; // 把这个添加到 value.h，可以减少许多重复的代码。
 int main_1() {
     ValuePtr a = std::make_shared<NumericValue>(42);
     ValuePtr b = std::make_shared<BooleanValue>(false);

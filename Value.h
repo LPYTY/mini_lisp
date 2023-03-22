@@ -7,14 +7,20 @@
 #include <vector>
 #include <deque>
 #include <stdexcept>
+#include <optional>
 
-using std::ostream, std::endl, std::string, std::to_string, std::shared_ptr, std::vector, std::deque, std::out_of_range;
+#include "./error.h"
+
+using std::ostream, std::endl, std::string, std::to_string, std::shared_ptr, std::vector, 
+std::deque, std::out_of_range, std::enable_shared_from_this, std::optional, std::nullopt;
 
 class Value;
 
 using ValuePtr = shared_ptr<Value>;
+using ReadOnlyValuePtr = shared_ptr<const Value>;
 
 class Value
+    :public enable_shared_from_this<Value>
 {
     friend ostream& operator<<(ostream& os, const Value& thisValue);
     friend class PairValue;
@@ -23,6 +29,9 @@ public:
     virtual string getTypeName() const = 0; 
     virtual bool isSelfEvaluating() const;
     virtual bool isNil() const;
+    virtual bool isList() const;
+    virtual vector<ValuePtr> toVector();
+    virtual optional<string> asSymbol() const;
 protected:
     Value() {}
     virtual string extractString(bool isOnRight) const;
@@ -94,6 +103,7 @@ public:
         :szSymbolName{ name } {}
     string toString() const override;
     string getTypeName() const override;
+    optional<string> asSymbol() const override;
 };
 
 class PairValue
@@ -123,10 +133,12 @@ private:
 public:
     PairValue(ValuePtr pLeft, ValuePtr pRight)
         :pLeftValue{ pLeft }, pRightValue{ pRight } {}
-    string toString() const override;
-    string getTypeName() const override;
     static shared_ptr<PairValue> fromVector(vector<ValuePtr>& v);
     static shared_ptr<PairValue> fromDeque(deque<ValuePtr>& q);
+    string toString() const override;
+    string getTypeName() const override;
+    bool isList() const override;
+    vector<ValuePtr> toVector() override;
 protected:
     string extractString(bool isOnRight) const override;
 };
