@@ -31,6 +31,11 @@ string NumericValue::getTypeName() const
     return "numeric value";
 }
 
+optional<double> NumericValue::asNumber() const
+{
+    return dValue;
+}
+
 string StringValue::toString() const
 {
     return '"' + szValue + '"';
@@ -51,9 +56,9 @@ string NilValue::getTypeName() const
     return "nil value";
 }
 
-bool NilValue::isNil() const
+vector<ValuePtr> NilValue::toVector()
 {
-    return true;
+    return vector<ValuePtr>();
 }
 
 string NilValue::extractString(bool isOnRight) const
@@ -96,14 +101,10 @@ shared_ptr<PairValue> PairValue::fromDeque(deque<ValuePtr>& q)
     return fromIter(q.begin(), q.end());
 }
 
-bool PairValue::isList() const
-{
-    return true;
-}
-
 vector<ValuePtr> PairValue::toVector()
 {
-    vector<ValuePtr> leftVector = pLeftValue->toVector(), rightVector = pRightValue->toVector();
+    vector<ValuePtr> leftVector, rightVector = pRightValue->toVector();
+    leftVector.push_back(pLeftValue);
     leftVector.insert(leftVector.end(), rightVector.begin(), rightVector.end());
     return leftVector;
 }
@@ -118,12 +119,17 @@ bool Value::isSelfEvaluating() const
     return false;
 }
 
-bool Value::isNil() const
+bool Value::isNil()
+{
+    return toVector().size() == 0;
+}
+
+bool Value::isList() const
 {
     return false;
 }
 
-bool Value::isList() const
+bool Value::isCallable() const
 {
     return false;
 }
@@ -138,6 +144,11 @@ optional<string> Value::asSymbol() const
     return nullopt;
 }
 
+optional<double> Value::asNumber() const
+{
+    return nullopt;
+}
+
 string Value::extractString(bool isOnRight) const
 {
     return (isOnRight ? " . " : "") + toString();
@@ -146,4 +157,49 @@ string Value::extractString(bool isOnRight) const
 bool SelfEvaluatingValue::isSelfEvaluating() const
 {
     return true;
+}
+
+ValuePtr ProcValue::call(const vector<ValuePtr>& args)
+{
+    if (!isValidParamCnt(args))
+    {
+        string errorInfo = "Params count should be ";
+        if (_minParamCnt != UNLIMITED)
+            errorInfo += ">= " + to_string(_minParamCnt) + " and ";
+        if (_maxParamCnt != UNLIMITED)
+            errorInfo += "<= " + to_string(_maxParamCnt);
+        errorInfo += " but " + to_string(args.size()) + " was(were) given.";
+        throw LispError(errorInfo);
+    }
+    return proc(args);
+}
+
+bool ProcValue::isCallable() const
+{
+    return true;
+}
+
+bool ProcValue::isValidParamCnt(const vector<ValuePtr>& params)
+{
+    return (_minParamCnt == UNLIMITED || params.size() >= _minParamCnt) && (_maxParamCnt == UNLIMITED || params.size() <= _maxParamCnt);
+}
+
+string BuiltinProcValue::toString() const
+{
+    return "#procedure";
+}
+
+string BuiltinProcValue::getTypeName() const
+{
+    return "builtin proc value";
+}
+
+bool ListValue::isList() const
+{
+    return true;
+}
+
+bool ListValue::isNil()
+{
+    return toVector().size() == 0;
 }

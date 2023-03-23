@@ -28,10 +28,12 @@ public:
     virtual string toString() const = 0;
     virtual string getTypeName() const = 0; 
     virtual bool isSelfEvaluating() const;
-    virtual bool isNil() const;
+    virtual bool isNil();
     virtual bool isList() const;
+    virtual bool isCallable() const;
     virtual vector<ValuePtr> toVector();
     virtual optional<string> asSymbol() const;
+    virtual optional<double> asNumber() const;
 protected:
     Value() {}
     virtual string extractString(bool isOnRight) const;
@@ -69,6 +71,7 @@ public:
         :dValue{ d } {}
     string toString() const override;
     string getTypeName() const override;
+    optional<double> asNumber() const override;
 };
 
 class StringValue
@@ -82,14 +85,21 @@ public:
     string getTypeName() const override;
 };
 
-class NilValue
+class ListValue
     :public Value
+{
+public:
+    bool isList() const override;
+    bool isNil() override;
+};
+class NilValue
+    :public ListValue
 {
 public:
     NilValue() = default;
     string toString() const override;
     string getTypeName() const override;
-    bool isNil() const override;
+    vector<ValuePtr> toVector() override;
 protected:
     string extractString(bool isOnRight) const override;
 };
@@ -107,7 +117,7 @@ public:
 };
 
 class PairValue
-    :public Value
+    :public ListValue
 {
     ValuePtr pLeftValue;
     ValuePtr pRightValue;
@@ -137,11 +147,40 @@ public:
     static shared_ptr<PairValue> fromDeque(deque<ValuePtr>& q);
     string toString() const override;
     string getTypeName() const override;
-    bool isList() const override;
     vector<ValuePtr> toVector() override;
 protected:
     string extractString(bool isOnRight) const override;
 };
 
+using FuncType = ValuePtr(const vector<ValuePtr>&);
+using FuncPtr = FuncType*;
+
+class ProcValue
+    :public SelfEvaluatingValue
+{
+    FuncPtr proc;
+    int _minParamCnt;
+    int _maxParamCnt;
+public:
+    const static int UNLIMITED = -1;
+    ProcValue(FuncType procedure, int minArgs = UNLIMITED, int maxArgs = UNLIMITED)
+        :proc(procedure), _minParamCnt(minArgs), _maxParamCnt(maxArgs) {}
+    virtual ValuePtr call(const vector<ValuePtr>& args);
+    bool isCallable() const override;
+protected:
+    bool isValidParamCnt(const vector<ValuePtr>& params);
+};
+
+using ProcPtr = shared_ptr<ProcValue>;
+
+class BuiltinProcValue
+    :public ProcValue
+{
+public:
+    BuiltinProcValue(FuncType procedure, int minArgs = UNLIMITED, int maxArgs = UNLIMITED)
+        :ProcValue(procedure, minArgs, maxArgs) {}
+    string toString() const override;
+    string getTypeName() const override;
+};
 #endif
 
