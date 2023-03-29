@@ -1,4 +1,5 @@
 #include "./value.h"
+#include "./eval_env.h"
 
 namespace ValueType
 {
@@ -20,6 +21,8 @@ namespace ValueType
             return "pair";
         case BuiltinProcType:
             return "builtin procedure";
+        case SpecialFormType:
+            return "special form";
         case ListType:
             return "pair or nil";
         default:
@@ -43,6 +46,11 @@ string BooleanValue::toString() const
 int BooleanValue::getTypeID() const
 {
     return ValueType::BooleanType;
+}
+
+BooleanValue::operator bool()
+{
+    return bValue;
 }
 
 bool NumericValue::isInteger() const
@@ -190,6 +198,11 @@ optional<double> Value::asNumber() const
     return nullopt;
 }
 
+Value::operator bool()
+{
+    return true;
+}
+
 string Value::extractString(bool isOnRight) const
 {
     return (isOnRight ? " . " : "") + toString();
@@ -204,15 +217,20 @@ ValuePtr ProcValue::call(const ValueList& args, EvalEnv& env)
     return proc(args, env);
 }
 
+string ProcValue::toString() const
+{
+    return "#procedure";
+}
+
 void ProcValue::checkValidParamCnt(const ValueList& params)
 {
     if (minParamCnt != UnlimitedCnt && params.size() < minParamCnt)
     {
-        throw LispError("Too few arguments: " + to_string(params.size()) + " < " + to_string(minParamCnt));
+        throw LispError("Too few " + paramName() + ": " + to_string(params.size()) + " < " + to_string(minParamCnt));
     }
     if (maxParamCnt != UnlimitedCnt && params.size() > maxParamCnt)
     {
-        throw LispError("Too many arguments: " + to_string(params.size()) + " > " + to_string(maxParamCnt));
+        throw LispError("Too many " + paramName() + ": " + to_string(params.size()) + " > " + to_string(maxParamCnt));
     }
 }
 
@@ -252,14 +270,14 @@ void ProcValue::checkValidParamType(const ValueList& params)
     }
 }
 
-string BuiltinProcValue::toString() const
-{
-    return "#procedure";
-}
-
 int BuiltinProcValue::getTypeID() const
 {
     return ValueType::BuiltinProcType;
+}
+
+string BuiltinProcValue::paramName() const
+{
+    return "arguments";
 }
 
 bool ListValue::isEmpty()
@@ -267,4 +285,12 @@ bool ListValue::isEmpty()
     return toVector().size() == 0;
 }
 
+int SpecialFormValue::getTypeID() const
+{
+    return ValueType::SpecialFormType;
+}
 
+string SpecialFormValue::paramName() const
+{
+    return "operands";
+}

@@ -27,11 +27,12 @@ namespace ValueType
     const int SymbolType         = 0x0000010000;
     const int PairType           = 0x0000100000;
     const int BuiltinProcType    = 0x0001000000;
-    const int SelfEvaluatingType = BooleanType | NumericType | StringType | BuiltinProcType;
-    const int ListType = NilType | PairType;
-    const int AtomType = BooleanType | NumericType | StringType | SymbolType | NilType;
-    const int ProcedureType = BuiltinProcType;
-    const int AllType = BooleanType | NumericType | StringType | NilType | SymbolType | PairType | BuiltinProcType;
+    const int SpecialFormType    = 0x0010000000;
+    const int SelfEvaluatingType = BooleanType | NumericType | StringType | BuiltinProcType | SpecialFormType;
+    const int ListType           = NilType | PairType;
+    const int AtomType           = BooleanType | NumericType | StringType | SymbolType | NilType;
+    const int ProcedureType      = BuiltinProcType | SpecialFormType;
+    const int AllType            = BooleanType | NumericType | StringType | NilType | SymbolType | PairType | BuiltinProcType | SpecialFormType;
 
     string typeName(int typeID);
 };
@@ -54,6 +55,7 @@ public:
     virtual ValueList toVector();
     virtual optional<string> asSymbol() const;
     virtual optional<double> asNumber() const;
+    explicit virtual operator bool();
 protected:
     Value() {}
     virtual string extractString(bool isOnRight) const;
@@ -69,6 +71,7 @@ public:
         :bValue{ b } {}
     string toString() const override;
     int getTypeID() const override;
+    explicit operator bool() override;
 };
 
 class NumericValue
@@ -175,9 +178,11 @@ public:
     ProcValue(FuncType procedure, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt, vector<int> type = UnlimitedType)
         :proc(procedure), minParamCnt(minArgs), maxParamCnt(maxArgs), paramType(type) {}
     virtual ValuePtr call(const ValueList& args, EvalEnv& env);
+    string toString() const override;
 protected:
-    void checkValidParamCnt(const ValueList& params);
-    void checkValidParamType(const ValueList& params);
+    virtual string paramName() const = 0;
+    virtual void checkValidParamCnt(const ValueList& params);
+    virtual void checkValidParamType(const ValueList& params);
 };
 
 using ProcPtr = shared_ptr<ProcValue>;
@@ -188,8 +193,20 @@ class BuiltinProcValue
 public:
     BuiltinProcValue(FuncType procedure, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt, vector<int> type = UnlimitedType)
         :ProcValue(procedure, minArgs, maxArgs, type) {}
-    string toString() const override;
     int getTypeID() const override;
+protected:
+    string paramName() const override;
 };
+
+class SpecialFormValue
+    :public ProcValue
+{
+public:
+    SpecialFormValue(FuncType procedure, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt, vector<int> type = UnlimitedType)
+        :ProcValue(procedure, minArgs, maxArgs, type) {}
+    int getTypeID() const override;
+    string paramName() const override;
+};
+
 #endif
 

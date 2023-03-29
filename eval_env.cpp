@@ -1,5 +1,7 @@
 #include "./eval_env.h"
 
+const unordered_map<string, ProcPtr>& EvalEnv::specialFormTable = allSpecialForms;
+
 EvalEnv::EvalEnv(EnvPtr parent)
 {
     pParent = parent;
@@ -21,6 +23,18 @@ EnvPtr EvalEnv::createChild(EnvPtr parent, vector<string> names, ValueList value
     return EnvPtr(pEnv);
 }
 
+ProcPtr EvalEnv::findForm(const string& name)
+{
+    try
+    {
+        return specialFormTable.at(name);
+    }
+    catch (out_of_range& e)
+    {
+            throw LispError("");
+    }
+}
+
 ValuePtr EvalEnv::findValue(const string& name)
 {
     try
@@ -32,7 +46,7 @@ ValuePtr EvalEnv::findValue(const string& name)
         if (pParent)
             return pParent->findValue(name);
         else
-            throw;
+            throw LispError("");
     }
 }
 
@@ -53,33 +67,32 @@ ValuePtr EvalEnv::eval(ValuePtr expr)
         ValueList value = expr->toVector();
         if (value.size() == 0)
             throw LispError("Evaluating nil is prohibited.");
-        if (value[0]->asSymbol() == "define"s)
-        {
-            if (value.size() != 3)
-                throw LispError("Malformed define.");
-            if (auto name = value[1]->asSymbol())
-            {
-                defineVariable(*name, eval(value[2]));
-                return make_shared<NilValue>();
-            }
-            else
-            {
-                throw LispError("Malformed define.");
-            }
-        }
         ValuePtr proc = eval(value[0]);
-        auto args = evalParams(expr);
+        if (!proc->isType(ValueType::ProcedureType))
+            throw LispError("Not a procedure " + proc->toString());
+        ValueList args;
+        if (!proc->isType(ValueType::SpecialFormType))
+            args = evalParams(expr);
+        else
+            args.insert(args.end(), value.begin() + 1, value.end());
         return apply(proc, args);
     }
     else if (auto name = expr->asSymbol())
     {
         try
         {
-            return findValue(*name);
+            return findForm(*name);
         }
-        catch (out_of_range& e)
+        catch(LispError& e)
         {
-            throw LispError("Variable " + *name + " not defined.");
+            try
+            {
+                return findValue(*name);
+            }
+            catch (LispError& e)
+            {
+                throw LispError("Variable " + *name + " not defined.");
+            }
         }
     }
     throw LispError("Unimplemented");
@@ -102,9 +115,5 @@ ValueList EvalEnv::evalParams(ValuePtr list)
 
 ValuePtr EvalEnv::apply(ValuePtr proc, const ValueList& params)
 {
-    if (!proc->isType(ValueType::ProcedureType))
-        throw LispError("Value isn't callable.");
     return static_pointer_cast<ProcValue>(proc)->call(params, *this);
 }
-
-EvalEnv* pCurrentEvalEnv; // Unfinished
