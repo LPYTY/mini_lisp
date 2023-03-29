@@ -31,14 +31,14 @@ namespace Builtin
 
     namespace Core
     {
-        ValuePtr print(const ValueList& params)
+        ValuePtr print(const ValueList& params, EvalEnv& e)
         {
             for (auto& p : params)
                 cout << p->toString() << endl;
             return make_shared<NilValue>();
         }
 
-        ValuePtr display(const ValueList& params)
+        ValuePtr display(const ValueList& params, EvalEnv& e)
         {
             for (auto& p : params)
             {
@@ -47,7 +47,7 @@ namespace Builtin
             return make_shared<NilValue>();
         }
 
-        ValuePtr exit(const ValueList& params)
+        ValuePtr exit(const ValueList& params, EvalEnv& e)
         {
             int exitCode = 0;
             if (params.size() != 0)
@@ -59,7 +59,7 @@ namespace Builtin
             throw ExitEvent(exitCode);
         }
 
-        ValuePtr newline(const ValueList& params)
+        ValuePtr newline(const ValueList& params, EvalEnv& e)
         {
             cout << endl;
             return make_shared<NilValue>();
@@ -68,12 +68,12 @@ namespace Builtin
 
     namespace TypeCheck
     {
-        ValuePtr isInteger(const ValueList& params)
+        ValuePtr isInteger(const ValueList& params, EvalEnv& e)
         {
             return make_shared<BooleanValue>(params[0]->isType(ValueType::NumericType) && static_pointer_cast<NumericValue>(params[0])->isInteger());
         }
 
-        ValuePtr isList(const ValueList& params)
+        ValuePtr isList(const ValueList& params, EvalEnv& e)
         {
             return make_shared<BooleanValue>(params[0]->isType(ValueType::ListType) && static_pointer_cast<ListValue>(params[0])->isList());
         }
@@ -81,7 +81,7 @@ namespace Builtin
 
     namespace ListOperator
     {
-        ValuePtr append(const ValueList& params)
+        ValuePtr append(const ValueList& params, EvalEnv& e)
         {
             if (params.size() == 0)
                 return make_shared<NilValue>();
@@ -96,33 +96,33 @@ namespace Builtin
             return ListValue::fromVector(resultList);
         }
 
-        ValuePtr car(const ValueList& params)
+        ValuePtr car(const ValueList& params, EvalEnv& e)
         {
             if (!params[0]->isType(ValueType::PairType))
                 throw LispError("Argument is not pair.");
             return static_pointer_cast<PairValue>(params[0])->left();
         }
 
-        ValuePtr cdr(const ValueList& params)
+        ValuePtr cdr(const ValueList& params, EvalEnv& e)
         {
             if (!params[0]->isType(ValueType::PairType))
                 throw LispError("Argument is not pair.");
             return static_pointer_cast<PairValue>(params[0])->right();
         }
 
-        ValuePtr cons(const ValueList& params)
+        ValuePtr cons(const ValueList& params, EvalEnv& e)
         {
             return make_shared<PairValue>(params[0], params[1]);
         }
 
-        ValuePtr length(const ValueList& params)
+        ValuePtr length(const ValueList& params, EvalEnv& e)
         {
             if (!params[0]->isType(ValueType::ListType))
                 throw LispError("Malformed list: expected pair of nil, got " + params[0]->toString());
             return make_shared<NumericValue>(params[0]->toVector().size());
         }
 
-        ValuePtr list(const ValueList& params)
+        ValuePtr list(const ValueList& params, EvalEnv& e)
         {
             return ListValue::fromVector(params);
         }
@@ -130,7 +130,7 @@ namespace Builtin
 
     namespace Math
     {
-        ValuePtr add(const ValueList& params)
+        ValuePtr add(const ValueList& params, EvalEnv& e)
         {
             double result = 0;
             for (const auto& i : params)
@@ -145,7 +145,7 @@ namespace Builtin
             return std::make_shared<NumericValue>(result);
         }
 
-        ValuePtr minus(const ValueList& params)
+        ValuePtr minus(const ValueList& params, EvalEnv& e)
         {
             switch (params.size())
             {
@@ -162,7 +162,7 @@ namespace Builtin
             }
         }
 
-        ValuePtr multiply(const ValueList& params)
+        ValuePtr multiply(const ValueList& params, EvalEnv& e)
         {
             double result = 1;
             for (auto& value : params)
@@ -172,7 +172,7 @@ namespace Builtin
             return make_shared<NumericValue>(result);
         }
 
-        ValuePtr divide(const ValueList& params)
+        ValuePtr divide(const ValueList& params, EvalEnv& e)
         {
             double x = 1, y = 0;
             switch (params.size())
@@ -198,12 +198,12 @@ namespace Builtin
             return make_shared<NumericValue>(x / y);
         }
 
-        ValuePtr abs(const ValueList& params)
+        ValuePtr abs(const ValueList& params, EvalEnv& e)
         {
             return make_shared<NumericValue>(std::abs(*params[0]->asNumber()));
         }
 
-        ValuePtr expt(const ValueList& params)
+        ValuePtr expt(const ValueList& params, EvalEnv& e)
         {
             double x = *params[0]->asNumber(), y = *params[1]->asNumber();
             if (x == 0 && y == 0)
@@ -225,7 +225,7 @@ namespace Builtin
             }
         }
 
-        ValuePtr quotient(const ValueList& params)
+        ValuePtr quotient(const ValueList& params, EvalEnv& e)
         {
             double x = *params[0]->asNumber(), y = *params[1]->asNumber();
             if (y == 0)
@@ -234,7 +234,7 @@ namespace Builtin
             return make_shared<NumericValue>(intNearZero(result));
         }
 
-        ValuePtr remainder(const ValueList& params)
+        ValuePtr remainder(const ValueList& params, EvalEnv& e)
         {
             double x = *params[0]->asNumber(), y = *params[1]->asNumber();
             if (y == 0)
@@ -242,7 +242,7 @@ namespace Builtin
             return make_shared<NumericValue>(x - y * intNearZero(x / y));
         }
 
-        ValuePtr modulo(const ValueList& params)
+        ValuePtr modulo(const ValueList& params, EvalEnv& e)
         {
             double x = *params[0]->asNumber(), y = *params[1]->asNumber();
             double result = x;
@@ -261,42 +261,42 @@ namespace Builtin
 
     namespace Compare
     {
-        ValuePtr equal(const ValueList& params)
+        ValuePtr equal(const ValueList& params, EvalEnv& e)
         {
             return make_shared<BooleanValue>(params[0]->getTypeID() == params[1]->getTypeID() && params[0]->toString() == params[1]->toString());
         }
 
-        ValuePtr less(const ValueList& params)
+        ValuePtr less(const ValueList& params, EvalEnv& e)
         {
             return make_shared<BooleanValue>(*params[0]->asNumber() < *params[1]->asNumber());
         }
 
-        ValuePtr more(const ValueList& params)
+        ValuePtr more(const ValueList& params, EvalEnv& e)
         {
             return make_shared<BooleanValue>(*params[0]->asNumber() > *params[1]->asNumber());
         }
 
-        ValuePtr lessOrEqual(const ValueList& params)
+        ValuePtr lessOrEqual(const ValueList& params, EvalEnv& e)
         {
             return make_shared<BooleanValue>(*params[0]->asNumber() <= *params[1]->asNumber());
         }
 
-        ValuePtr moreOrEqual(const ValueList& params)
+        ValuePtr moreOrEqual(const ValueList& params, EvalEnv& e)
         {
             return make_shared<BooleanValue>(*params[0]->asNumber() >= *params[1]->asNumber());
         }
 
-        ValuePtr isEven(const ValueList& params)
+        ValuePtr isEven(const ValueList& params, EvalEnv& e)
         {
             return make_shared<BooleanValue>(static_pointer_cast<NumericValue>(params[0])->isInteger() && (static_cast<long long>(*params[0]->asNumber()) % 2 == 0));
         }
 
-        ValuePtr isOdd(const ValueList& params)
+        ValuePtr isOdd(const ValueList& params, EvalEnv& e)
         {
             return make_shared<BooleanValue>(static_pointer_cast<NumericValue>(params[0])->isInteger() && (static_cast<long long>(*params[0]->asNumber()) % 2 == 1));
         }
 
-        ValuePtr isZero(const ValueList& params)
+        ValuePtr isZero(const ValueList& params, EvalEnv& e)
         {
             return make_shared<BooleanValue>(*params[0]->asNumber() == 0);
         }

@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <cmath>
 #include <complex>
+#include <functional>
 
 #include "./value.h"
 
@@ -33,59 +34,58 @@ namespace Builtin
 
     namespace Core
     {
-        ValuePtr print(const ValueList& params);
-        ValuePtr display(const ValueList& params);
-        ValuePtr exit(const ValueList& params);
-        ValuePtr newline(const ValueList& params);
+        ValuePtr print(const ValueList& params, EvalEnv& e);
+        ValuePtr display(const ValueList& params, EvalEnv& e);
+        ValuePtr exit(const ValueList& params, EvalEnv& e);
+        ValuePtr newline(const ValueList& params, EvalEnv& e);
     }
 
     namespace TypeCheck
     {
         template<int typeID>
-        ValuePtr isType(const ValueList& params)
+        ValuePtr isType(const ValueList& params, EvalEnv& e)
         {
             return make_shared<BooleanValue>(params[0]->isType(typeID));
         }
-        ValuePtr isInteger(const ValueList& params);
-        ValuePtr isList(const ValueList& params);
+        ValuePtr isInteger(const ValueList& params, EvalEnv& e);
+        ValuePtr isList(const ValueList& params, EvalEnv& e);
     }
 
     namespace ListOperator
     {
-        ValuePtr append(const ValueList& params);
-        ValuePtr car(const ValueList& params);
-        ValuePtr cdr(const ValueList& params);
-        ValuePtr cons(const ValueList& params);
-        ValuePtr length(const ValueList& params);
-        ValuePtr list(const ValueList& params);
+        ValuePtr append(const ValueList& params, EvalEnv& e);
+        ValuePtr car(const ValueList& params, EvalEnv& e);
+        ValuePtr cdr(const ValueList& params, EvalEnv& e);
+        ValuePtr cons(const ValueList& params, EvalEnv& e);
+        ValuePtr length(const ValueList& params, EvalEnv& e);
+        ValuePtr list(const ValueList& params, EvalEnv& e);
     }
 
     namespace Math
     {
-        ValuePtr add(const ValueList& params);
-        ValuePtr minus(const ValueList& params);
-        ValuePtr multiply(const ValueList& params);
-        ValuePtr divide(const ValueList& params);
-        ValuePtr abs(const ValueList& params);
-        ValuePtr expt(const ValueList& params);
-        ValuePtr quotient(const ValueList& params);
-        ValuePtr remainder(const ValueList& params);
-        ValuePtr modulo(const ValueList& params);
+        ValuePtr add(const ValueList& params, EvalEnv& e);
+        ValuePtr minus(const ValueList& params, EvalEnv& e);
+        ValuePtr multiply(const ValueList& params, EvalEnv& e);
+        ValuePtr divide(const ValueList& params, EvalEnv& e);
+        ValuePtr abs(const ValueList& params, EvalEnv& e);
+        ValuePtr expt(const ValueList& params, EvalEnv& e);
+        ValuePtr quotient(const ValueList& params, EvalEnv& e);
+        ValuePtr remainder(const ValueList& params, EvalEnv& e);
+        ValuePtr modulo(const ValueList& params, EvalEnv& e);
     }
 
     namespace Compare
     {
-        ValuePtr equal(const ValueList& params);
-        ValuePtr less(const ValueList& params);
-        ValuePtr more(const ValueList& params);
-        ValuePtr lessOrEqual(const ValueList& params);
-        ValuePtr moreOrEqual(const ValueList& params);
-        ValuePtr isEven(const ValueList& params);
-        ValuePtr isOdd(const ValueList& params);
-        ValuePtr isZero(const ValueList& params);
+        ValuePtr equal(const ValueList& params, EvalEnv& e);
+        ValuePtr less(const ValueList& params, EvalEnv& e);
+        ValuePtr more(const ValueList& params, EvalEnv& e);
+        ValuePtr lessOrEqual(const ValueList& params, EvalEnv& e);
+        ValuePtr moreOrEqual(const ValueList& params, EvalEnv& e);
+        ValuePtr isEven(const ValueList& params, EvalEnv& e);
+        ValuePtr isOdd(const ValueList& params, EvalEnv& e);
+        ValuePtr isZero(const ValueList& params, EvalEnv& e);
     }
 }
-
 
 extern unordered_map<string, ProcPtr> allBuiltins;
 

@@ -36,7 +36,7 @@ ValuePtr EvalEnv::findValue(const string& name)
     }
 }
 
-void EvalEnv::defineValue(const string& name, ValuePtr value)
+void EvalEnv::defineVariable(const string& name, ValuePtr value)
 {
     symbolTable[name] = value;
 }
@@ -59,7 +59,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr)
                 throw LispError("Malformed define.");
             if (auto name = value[1]->asSymbol())
             {
-                defineValue(*name, eval(value[2]));
+                defineVariable(*name, eval(value[2]));
                 return make_shared<NilValue>();
             }
             else
@@ -104,7 +104,7 @@ ValuePtr EvalEnv::apply(ValuePtr proc, const ValueList& params)
 {
     if (!proc->isType(ValueType::ProcedureType))
         throw LispError("Value isn't callable.");
-    return static_pointer_cast<ProcValue>(proc)->call(params);
+    return static_pointer_cast<ProcValue>(proc)->call(params, *this);
 }
 
 EvalEnv* pCurrentEvalEnv; // Unfinished

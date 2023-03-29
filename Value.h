@@ -8,12 +8,15 @@
 #include <deque>
 #include <stdexcept>
 #include <optional>
+#include <functional>
 
 #include "./error.h"
 
 using std::ostream, std::endl, std::string, std::to_string, std::shared_ptr, std::vector,
 std::deque, std::out_of_range, std::enable_shared_from_this, std::optional, std::nullopt,
 std::make_shared;
+
+class EvalEnv; // Defined in eval_env.h
 
 namespace ValueType
 {
@@ -155,13 +158,13 @@ shared_ptr<ListValue> createListFromIter(Iter begin, Iter end)
     return make_shared<PairValue>(left, createListFromIter(++begin, end));
 }
 
-using FuncType = ValuePtr(const ValueList&);
+using FuncType = std::function<ValuePtr(const ValueList&, EvalEnv&)>;
 using FuncPtr = FuncType*;
 
 class ProcValue
     :public Value
 {
-    FuncPtr proc;
+    FuncType proc;
     int minParamCnt;
     int maxParamCnt;
     vector<int> paramType;
@@ -171,7 +174,7 @@ public:
     const static vector<int> UnlimitedType;
     ProcValue(FuncType procedure, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt, vector<int> type = UnlimitedType)
         :proc(procedure), minParamCnt(minArgs), maxParamCnt(maxArgs), paramType(type) {}
-    virtual ValuePtr call(const ValueList& args);
+    virtual ValuePtr call(const ValueList& args, EvalEnv& env);
 protected:
     void checkValidParamCnt(const ValueList& params);
     void checkValidParamType(const ValueList& params);

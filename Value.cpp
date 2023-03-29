@@ -197,11 +197,11 @@ string Value::extractString(bool isOnRight) const
 
 const vector<int> ProcValue::UnlimitedType{ ValueType::AllType, ProcValue::SameToRest };
 
-ValuePtr ProcValue::call(const ValueList& args)
+ValuePtr ProcValue::call(const ValueList& args, EvalEnv& env)
 {
     checkValidParamCnt(args);
     checkValidParamType(args);
-    return proc(args);
+    return proc(args, env);
 }
 
 void ProcValue::checkValidParamCnt(const ValueList& params)

@@ -24,12 +24,11 @@ public:
     static EnvPtr createGlobal();
     static EnvPtr createChild(EnvPtr parent, vector<string> names = {}, ValueList values = {});
     ValuePtr findValue(const string& name);
-    void defineValue(const string& name, ValuePtr value);
+    void defineVariable(const string& name, ValuePtr value);
     ValuePtr eval(ValuePtr expr);
     ValueList evalParams(ValuePtr list);
     ValuePtr apply(ValuePtr proc, const ValueList& params);
 };
 
-EvalEnv& getCurrentEvalEnv(); // Unfinished
 
 #endif
