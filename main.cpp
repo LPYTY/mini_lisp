@@ -11,7 +11,7 @@ int main_1();
 int main() 
 {
     //main_1();
-    EvalEnv env;
+    EnvPtr env = EvalEnv::createGlobal();
     int exitCode = 0;
     while (true) 
     {
@@ -27,7 +27,7 @@ int main()
             auto tokens = Tokenizer::tokenize(line);
             Parser parser(std::move(tokens)); // TokenPtr 不支持复制
             auto value = parser.parse();
-            auto result = env.eval(std::move(value));
+            auto result = env->eval(std::move(value));
             std::cout << result->toString() << std::endl; // 输出外部表示
         }
         catch (ExitEvent& e)
@@ -42,6 +42,10 @@ int main()
         catch (LispError& e)
         {
             std::cerr << "LispError: " << e.what() << std::endl;
+        }
+        catch (IntenalError& e)
+        {
+            std::cerr << "InternalError: " << e.what() << std::endl;
         }
     }
     return exitCode;

@@ -21,11 +21,19 @@ public:
 class ExitEvent
     :public std::runtime_error
 {
+    int eCode;
 public:
     using runtime_error::runtime_error;
     ExitEvent(int code)
-        :runtime_error(std::to_string(code)) {}
+        :eCode(code), runtime_error("") {}
     int exitCode() const;
+};
+
+class IntenalError
+    :public std::runtime_error
+{
+public:
+    using runtime_error::runtime_error;
 };
 
 #endif

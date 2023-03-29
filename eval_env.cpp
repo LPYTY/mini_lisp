@@ -1,8 +1,44 @@
 #include "./eval_env.h"
 
-EvalEnv::EvalEnv()
+EvalEnv::EvalEnv(EnvPtr parent)
 {
+    pParent = parent;
     symbolTable.insert(allBuiltins.begin(), allBuiltins.end());
+}
+
+EnvPtr EvalEnv::createGlobal()
+{
+    return EnvPtr(new EvalEnv(nullptr));
+}
+
+EnvPtr EvalEnv::createChild(EnvPtr parent, vector<string> names, ValueList values)
+{
+    auto pEnv = new EvalEnv(parent);
+    for (size_t i = 0; i < names.size() && i < values.size(); i++)
+    {
+        pEnv->symbolTable[names[i]] = values[i];
+    }
+    return EnvPtr(pEnv);
+}
+
+ValuePtr EvalEnv::findValue(const string& name)
+{
+    try
+    {
+        return symbolTable.at(name);
+    }
+    catch (out_of_range& e)
+    {
+        if (pParent)
+            return pParent->findValue(name);
+        else
+            throw;
+    }
+}
+
+void EvalEnv::defineValue(const string& name, ValuePtr value)
+{
+    symbolTable[name] = value;
 }
 
 ValuePtr EvalEnv::eval(ValuePtr expr)
@@ -23,7 +59,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr)
                 throw LispError("Malformed define.");
             if (auto name = value[1]->asSymbol())
             {
-                symbolTable[*name] = eval(value[2]);
+                defineValue(*name, eval(value[2]));
                 return make_shared<NilValue>();
             }
             else
@@ -39,7 +75,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr)
     {
         try
         {
-            return symbolTable.at(*name);
+            return findValue(*name);
         }
         catch (out_of_range& e)
         {

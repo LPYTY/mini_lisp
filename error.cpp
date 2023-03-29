@@ -2,5 +2,5 @@
 
 int ExitEvent::exitCode() const
 {
-    return std::stoi(what());
+    return eCode;
 }
