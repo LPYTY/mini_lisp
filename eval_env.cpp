@@ -7,14 +7,14 @@ EvalEnv::EvalEnv()
 
 ValuePtr EvalEnv::eval(ValuePtr expr)
 {
-    if (expr->isSelfEvaluating())
+    if (expr->isType(ValueType::SelfEvaluatingType))
     {
         return expr;
     }
-    else if (expr->isList())
+    else if (expr->isType(ValueType::ListType))
     {
         using namespace std::literals;
-        vector<ValuePtr> value = expr->toVector();
+        ValueList value = expr->toVector();
         if (value.size() == 0)
             throw LispError("Evaluating nil is prohibited.");
         if (value[0]->asSymbol() == "define"s)
@@ -49,12 +49,12 @@ ValuePtr EvalEnv::eval(ValuePtr expr)
     throw LispError("Unimplemented");
 }
 
-vector<ValuePtr> EvalEnv::evalParams(ValuePtr list)
+ValueList EvalEnv::evalParams(ValuePtr list)
 {
-    if (!list->isList())
+    if (!list->isType(ValueType::ListType))
         throw LispError("Unimplemented");
-    vector<ValuePtr> results;
-    vector<ValuePtr> v = list->toVector();
+    ValueList results;
+    ValueList v = list->toVector();
     std::transform(
         v.begin() + 1,
         v.end(),
@@ -64,9 +64,11 @@ vector<ValuePtr> EvalEnv::evalParams(ValuePtr list)
     return results;
 }
 
-ValuePtr EvalEnv::apply(ValuePtr proc, const vector<ValuePtr>& params)
+ValuePtr EvalEnv::apply(ValuePtr proc, const ValueList& params)
 {
-    if (!proc->isCallable())
+    if (!proc->isType(ValueType::ProcedureType))
         throw LispError("Value isn't callable.");
     return static_pointer_cast<ProcValue>(proc)->call(params);
 }
+
+EvalEnv* pCurrentEvalEnv; // Unfinished

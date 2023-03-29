@@ -18,8 +18,10 @@ class EvalEnv
 public:
     EvalEnv();
     ValuePtr eval(ValuePtr expr);
-    vector<ValuePtr> evalParams(ValuePtr list);
-    ValuePtr apply(ValuePtr proc, const vector<ValuePtr>& params);
+    ValueList evalParams(ValuePtr list);
+    ValuePtr apply(ValuePtr proc, const ValueList& params);
 };
+
+EvalEnv& getCurrentEvalEnv(); // Unfinished
 
 #endif

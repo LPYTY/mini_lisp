@@ -1,5 +1,34 @@
 #include "./value.h"
 
+namespace ValueType
+{
+    string typeName(int typeID)
+    {
+        switch (typeID)
+        {
+        case BooleanType:
+            return "boolean";
+        case NumericType:
+            return "number";
+        case StringType:
+            return "string";
+        case NilType:
+            return "nil";
+        case SymbolType:
+            return "symbol";
+        case PairType:
+            return "pair";
+        case BuiltinProcType:
+            return "builtin procedure";
+        case ListType:
+            return "pair or nil";
+        default:
+            break;
+        }
+        return "";
+    }
+}
+
 ostream& operator<<(ostream& os, const Value& thisValue)
 {
     os << thisValue.toString() << endl;
@@ -11,14 +40,14 @@ string BooleanValue::toString() const
     return bValue ? "#t" : "#f";
 }
 
-string BooleanValue::getTypeName() const
+int BooleanValue::getTypeID() const
 {
-    return "boolean value";
+    return ValueType::BooleanType;
 }
 
 bool NumericValue::isInteger() const
 {
-    return static_cast<int>(dValue) == dValue;
+    return static_cast<long long>(dValue) == dValue;
 }
 
 string NumericValue::toString() const
@@ -26,9 +55,9 @@ string NumericValue::toString() const
     return isInteger() ? to_string(static_cast<int>(dValue)) : to_string(dValue);
 }
 
-string NumericValue::getTypeName() const
+int NumericValue::getTypeID() const
 {
-    return "numeric value";
+    return ValueType::NumericType;
 }
 
 optional<double> NumericValue::asNumber() const
@@ -41,9 +70,14 @@ string StringValue::toString() const
     return '"' + szValue + '"';
 }
 
-string StringValue::getTypeName() const
+int StringValue::getTypeID() const
 {
-    return "string value";
+    return ValueType::StringType;
+}
+
+const string& StringValue::value() const
+{
+    return szValue;
 }
 
 string NilValue::toString() const
@@ -51,14 +85,19 @@ string NilValue::toString() const
     return "()";
 }
 
-string NilValue::getTypeName() const
+int NilValue::getTypeID() const
 {
-    return "nil value";
+    return ValueType::NilType;
 }
 
-vector<ValuePtr> NilValue::toVector()
+ValueList NilValue::toVector()
 {
-    return vector<ValuePtr>();
+    return ValueList();
+}
+
+bool NilValue::isList()
+{
+    return true;
 }
 
 string NilValue::extractString(bool isOnRight) const
@@ -71,9 +110,9 @@ string SymbolValue::toString() const
     return szSymbolName;
 }
 
-string SymbolValue::getTypeName() const
+int SymbolValue::getTypeID() const
 {
-    return "symbol value";
+    return ValueType::SymbolType;
 }
 
 optional<string> SymbolValue::asSymbol() const
@@ -86,27 +125,44 @@ string PairValue::toString() const
     return '(' + extractString(false) + ')';
 }
 
-string PairValue::getTypeName() const
+int PairValue::getTypeID() const
 {
-    return "pair value";
+    return ValueType::PairType;
 }
 
-shared_ptr<PairValue> PairValue::fromVector(vector<ValuePtr>& v)
+shared_ptr<ListValue> ListValue::fromVector(const ValueList& v)
 {
-    return fromIter(v.begin(), v.end());
+    return createListFromIter(v.begin(), v.end());
 }
 
-shared_ptr<PairValue> PairValue::fromDeque(deque<ValuePtr>& q)
+shared_ptr<ListValue> ListValue::fromDeque(deque<ValuePtr>& q)
 {
-    return fromIter(q.begin(), q.end());
+    return createListFromIter(q.begin(), q.end());
 }
 
-vector<ValuePtr> PairValue::toVector()
+ValueList PairValue::toVector()
 {
-    vector<ValuePtr> leftVector, rightVector = pRightValue->toVector();
+    if (!pRightValue->isType(ValueType::ListType))
+        throw LispError("Malformed list: expected pair or nil, got " + pRightValue->toString() + ".");
+    ValueList leftVector, rightVector = pRightValue->toVector();
     leftVector.push_back(pLeftValue);
     leftVector.insert(leftVector.end(), rightVector.begin(), rightVector.end());
     return leftVector;
+}
+
+ValuePtr PairValue::left()
+{
+    return pLeftValue;
+}
+
+ValuePtr PairValue::right()
+{
+    return pRightValue;
+}
+
+bool PairValue::isList()
+{
+    return pRightValue->isType(ValueType::NilType);
 }
 
 string PairValue::extractString(bool isOnRight) const
@@ -114,29 +170,14 @@ string PairValue::extractString(bool isOnRight) const
     return (isOnRight ? " " : "") + pLeftValue->extractString(false) + pRightValue->extractString(true);
 }
 
-bool Value::isSelfEvaluating() const
+bool Value::isType(int typeID) const
 {
-    return false;
+    return getTypeID() & typeID;
 }
 
-bool Value::isNil()
+ValueList Value::toVector()
 {
-    return toVector().size() == 0;
-}
-
-bool Value::isList() const
-{
-    return false;
-}
-
-bool Value::isCallable() const
-{
-    return false;
-}
-
-vector<ValuePtr> Value::toVector()
-{
-    return vector<ValuePtr>{shared_from_this()};
+    throw LispError("Malformed list: expected pair or nil, got " + toString() + ".");
 }
 
 optional<string> Value::asSymbol() const
@@ -154,34 +195,61 @@ string Value::extractString(bool isOnRight) const
     return (isOnRight ? " . " : "") + toString();
 }
 
-bool SelfEvaluatingValue::isSelfEvaluating() const
-{
-    return true;
-}
+const vector<int> ProcValue::UnlimitedType{ ValueType::AllType, ProcValue::SameToRest };
 
-ValuePtr ProcValue::call(const vector<ValuePtr>& args)
+ValuePtr ProcValue::call(const ValueList& args)
 {
-    if (!isValidParamCnt(args))
-    {
-        string errorInfo = "Params count should be ";
-        if (_minParamCnt != UNLIMITED)
-            errorInfo += ">= " + to_string(_minParamCnt) + " and ";
-        if (_maxParamCnt != UNLIMITED)
-            errorInfo += "<= " + to_string(_maxParamCnt);
-        errorInfo += " but " + to_string(args.size()) + " was(were) given.";
-        throw LispError(errorInfo);
-    }
+    checkValidParamCnt(args);
+    checkValidParamType(args);
     return proc(args);
 }
 
-bool ProcValue::isCallable() const
+void ProcValue::checkValidParamCnt(const ValueList& params)
 {
-    return true;
+    if (minParamCnt != UnlimitedCnt && params.size() < minParamCnt)
+    {
+        throw LispError("Too few arguments: " + to_string(params.size()) + " < " + to_string(minParamCnt));
+    }
+    if (maxParamCnt != UnlimitedCnt && params.size() > maxParamCnt)
+    {
+        throw LispError("Too many arguments: " + to_string(params.size()) + " > " + to_string(maxParamCnt));
+    }
 }
 
-bool ProcValue::isValidParamCnt(const vector<ValuePtr>& params)
+void ProcValue::checkValidParamType(const ValueList& params)
 {
-    return (_minParamCnt == UNLIMITED || params.size() >= _minParamCnt) && (_maxParamCnt == UNLIMITED || params.size() <= _maxParamCnt);
+    if (paramType.size() == 0)
+        return;
+    bool hasRestType = false;
+    int restType = 0;
+    size_t checkSize = paramType.size();
+    for (size_t i = 0; i < paramType.size(); i++)
+    {
+        if (paramType[i] = SameToRest)
+        {
+            if (i == 0)
+                return;
+            checkSize = i;
+            hasRestType = true;
+            restType = paramType[i - 1];
+            break;
+        }
+    }
+    for (size_t i = 0; i < params.size(); i++)
+    {
+        if (i < checkSize)
+        {
+            if (!params[i]->isType(paramType[i]))
+                throw LispError(params[i]->toString() + " is not " + ValueType::typeName(paramType[i]));
+        }
+        else
+        {
+            if (!hasRestType)
+                return;
+            if (!params[i]->isType(restType))
+                throw LispError(params[i]->toString() + " is not " + ValueType::typeName(restType));
+        }
+    }
 }
 
 string BuiltinProcValue::toString() const
@@ -189,17 +257,14 @@ string BuiltinProcValue::toString() const
     return "#procedure";
 }
 
-string BuiltinProcValue::getTypeName() const
+int BuiltinProcValue::getTypeID() const
 {
-    return "builtin proc value";
+    return ValueType::BuiltinProcType;
 }
 
-bool ListValue::isList() const
-{
-    return true;
-}
-
-bool ListValue::isNil()
+bool ListValue::isEmpty()
 {
     return toVector().size() == 0;
 }
+
+

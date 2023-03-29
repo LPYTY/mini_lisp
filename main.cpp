@@ -12,6 +12,7 @@ int main()
 {
     //main_1();
     EvalEnv env;
+    int exitCode = 0;
     while (true) 
     {
         try 
@@ -29,11 +30,21 @@ int main()
             auto result = env.eval(std::move(value));
             std::cout << result->toString() << std::endl; // 输出外部表示
         }
-        catch (std::runtime_error& e)
+        catch (ExitEvent& e)
         {
-            std::cerr << "Error: " << e.what() << std::endl;
+            exitCode = e.exitCode();
+            break;
+        }
+        catch (SyntaxError& e)
+        {
+            std::cerr << "SyntaxError: " << e.what() << std::endl;
+        }
+        catch (LispError& e)
+        {
+            std::cerr << "LispError: " << e.what() << std::endl;
         }
     }
+    return exitCode;
 }
 
 #include <iostream>
@@ -57,8 +68,8 @@ int main_1() {
         << d->toString() << '\n'
         << e->toString() << '\n'
         << f->toString() << std::endl;
-    vector<ValuePtr> v = { a,b,c,d,e,f };
-    auto g = PairValue::fromVector(v);
+    ValueList v = { a,b,c,d,e,f };
+    auto g = ListValue::fromVector(v);
     std::cout << g->toString() << endl;
     return 0;
 }
