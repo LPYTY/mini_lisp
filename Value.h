@@ -17,6 +17,7 @@ std::deque, std::out_of_range, std::enable_shared_from_this, std::optional, std:
 std::make_shared;
 
 class EvalEnv; // Defined in eval_env.h
+using EnvPtr = shared_ptr<EvalEnv>;
 
 namespace ValueType
 {
@@ -213,14 +214,15 @@ class LambdaValue
 {
     vector<string> paramNames;
     ValueList body;
+    EnvPtr parentEnv;
     static ValuePtr standardLambdaProc(const ValueList& params, EvalEnv& env);
 public:
-    LambdaValue(const vector<string>& paramsDefinition, const ValueList& bodyDefinition)
-        :ProcValue(standardLambdaProc, paramsDefinition.size(), paramsDefinition.size()), paramNames(paramsDefinition), body(bodyDefinition) {}
+    LambdaValue(const vector<string>& paramsDefinition, const ValueList& bodyDefinition, EnvPtr parentEvalEnv);
     int getTypeID() const override;
     ValuePtr call(const ValueList& params, EvalEnv& env) override;
 protected:
     virtual void checkValidParamCnt(const ValueList& params) override;
+    EnvPtr prepareEvalEnv(const ValueList& params);
 };
 
 #endif

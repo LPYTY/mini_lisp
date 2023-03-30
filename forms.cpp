@@ -25,13 +25,15 @@ namespace SpecialForm
                     throw LispError("Expect symbol in Lambda parameter, found " + param->toString());
             }
             vector<ValuePtr> body(params.begin() + 1, params.end());
-            return make_shared<LambdaValue>(paramNames, body);
+            return make_shared<LambdaValue>(paramNames, body, env.shared_from_this());
         }
 
         ValuePtr defineForm(const ValueList& params, EvalEnv& env)
         {
             if (auto name = params[0]->asSymbol())
             {
+                if(params.size() > 2)
+                    throw LispError("Too many operands: " + to_string(params.size()) + " > 2");
                 env.defineVariable(*name, env.eval(params[1]));
                 return make_shared<NilValue>();
             }
@@ -94,7 +96,7 @@ using namespace std::literals;
 const unordered_map<string, ProcPtr> allSpecialForms =
 {
     SpecialFormItem("lambda"s, SpecialForm::Primary::lambdaForm, 2, ProcValue::UnlimitedCnt, {ValueType::ListType}),
-    SpecialFormItem("define"s, SpecialForm::Primary::defineForm, 2, 2, {ValueType::SymbolType, ValueType::AllType}),
+    SpecialFormItem("define"s, SpecialForm::Primary::defineForm, 2, ProcValue::UnlimitedCnt, {ValueType::SymbolType, ValueType::AllType}),
     SpecialFormItem("quote"s, SpecialForm::Primary::quoteForm, 1, 1),
     SpecialFormItem("if"s, SpecialForm::Primary::ifForm, 2, 3),
     SpecialFormItem("and"s, SpecialForm::Primary::andForm),

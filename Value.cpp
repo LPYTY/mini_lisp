@@ -325,6 +325,11 @@ ValuePtr LambdaValue::standardLambdaProc(const ValueList& values, EvalEnv& env)
     return result;
 }
 
+LambdaValue::LambdaValue(const vector<string>& paramsDefinition, const ValueList& bodyDefinition, EnvPtr parentEvalEnv)
+    :ProcValue(standardLambdaProc, paramsDefinition.size(), paramsDefinition.size()), paramNames(paramsDefinition), body(bodyDefinition), parentEnv(parentEvalEnv)
+{
+}
+
 int LambdaValue::getTypeID() const
 {
     return ValueType::LambdaType;
@@ -332,11 +337,18 @@ int LambdaValue::getTypeID() const
 
 ValuePtr LambdaValue::call(const ValueList& params, EvalEnv& env)
 {
-    return ProcValue::call(params, env);
+    checkValidParamCnt(params);
+    auto lambdaEnv = prepareEvalEnv(params);
+    return proc(body, *lambdaEnv);
 }
 
 void LambdaValue::checkValidParamCnt(const ValueList& params)
 {
     if (params.size() != minParamCnt)
         throw LispError("Procedure expected " + to_string(minParamCnt) + " parameters, got " + to_string(params.size()));
+}
+
+EnvPtr LambdaValue::prepareEvalEnv(const ValueList& params)
+{
+    return EvalEnv::createChild(parentEnv, paramNames, params);
 }
