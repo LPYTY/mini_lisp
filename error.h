@@ -18,6 +18,20 @@ public:
     using runtime_error::runtime_error;
 };
 
+class TooManyArgumentsError
+    :public LispError
+{
+public:
+    using LispError::LispError;
+};
+
+class TooFewArgumentsError
+    :public LispError
+{
+public:
+    using LispError::LispError;
+};
+
 class ExitEvent
     :public std::runtime_error
 {

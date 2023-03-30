@@ -20,19 +20,20 @@ class EvalEnv; // Defined in eval_env.h
 
 namespace ValueType
 {
-    const int BooleanType        = 0x0000000001;
-    const int NumericType        = 0x0000000010;
-    const int StringType         = 0x0000000100;
-    const int NilType            = 0x0000001000;
-    const int SymbolType         = 0x0000010000;
-    const int PairType           = 0x0000100000;
-    const int BuiltinProcType    = 0x0001000000;
-    const int SpecialFormType    = 0x0010000000;
-    const int SelfEvaluatingType = BooleanType | NumericType | StringType | BuiltinProcType | SpecialFormType;
+    const int BooleanType        = 0b0000000001;
+    const int NumericType        = 0b0000000010;
+    const int StringType         = 0b0000000100;
+    const int NilType            = 0b0000001000;
+    const int SymbolType         = 0b0000010000;
+    const int PairType           = 0b0000100000;
+    const int BuiltinProcType    = 0b0001000000;
+    const int SpecialFormType    = 0b0010000000;
+    const int LambdaType         = 0b0100000000;
+    const int SelfEvaluatingType = BooleanType | NumericType | StringType | BuiltinProcType | SpecialFormType | LambdaType;
     const int ListType           = NilType | PairType;
     const int AtomType           = BooleanType | NumericType | StringType | SymbolType | NilType;
-    const int ProcedureType      = BuiltinProcType | SpecialFormType;
-    const int AllType            = BooleanType | NumericType | StringType | NilType | SymbolType | PairType | BuiltinProcType | SpecialFormType;
+    const int ProcedureType      = BuiltinProcType | SpecialFormType |LambdaType;
+    const int AllType            = BooleanType | NumericType | StringType | NilType | SymbolType | PairType | BuiltinProcType | SpecialFormType | LambdaType;
 
     string typeName(int typeID);
 };
@@ -167,6 +168,7 @@ using FuncPtr = FuncType*;
 class ProcValue
     :public Value
 {
+protected:
     FuncType proc;
     int minParamCnt;
     int maxParamCnt;
@@ -180,7 +182,6 @@ public:
     virtual ValuePtr call(const ValueList& args, EvalEnv& env);
     string toString() const override;
 protected:
-    virtual string paramName() const = 0;
     virtual void checkValidParamCnt(const ValueList& params);
     virtual void checkValidParamType(const ValueList& params);
 };
@@ -191,21 +192,35 @@ class BuiltinProcValue
     :public ProcValue
 {
 public:
-    BuiltinProcValue(FuncType procedure, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt, vector<int> type = UnlimitedType)
-        :ProcValue(procedure, minArgs, maxArgs, type) {}
+    using ProcValue::ProcValue;
     int getTypeID() const override;
 protected:
-    string paramName() const override;
+    virtual void checkValidParamCnt(const ValueList& params) override;
 };
 
 class SpecialFormValue
     :public ProcValue
 {
 public:
-    SpecialFormValue(FuncType procedure, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt, vector<int> type = UnlimitedType)
-        :ProcValue(procedure, minArgs, maxArgs, type) {}
+    using ProcValue::ProcValue;
     int getTypeID() const override;
-    string paramName() const override;
+protected:
+    virtual void checkValidParamCnt(const ValueList& params) override;
+};
+
+class LambdaValue
+    :public ProcValue
+{
+    vector<string> paramNames;
+    ValueList body;
+    static ValuePtr standardLambdaProc(const ValueList& params, EvalEnv& env);
+public:
+    LambdaValue(const vector<string>& paramsDefinition, const ValueList& bodyDefinition)
+        :ProcValue(standardLambdaProc, paramsDefinition.size(), paramsDefinition.size()), paramNames(paramsDefinition), body(bodyDefinition) {}
+    int getTypeID() const override;
+    ValuePtr call(const ValueList& params, EvalEnv& env) override;
+protected:
+    virtual void checkValidParamCnt(const ValueList& params) override;
 };
 
 #endif

@@ -28,8 +28,9 @@ namespace SpecialForm
 
     namespace Primary
     {
-        ValuePtr define(const ValueList& params, EvalEnv& env);
-        ValuePtr quote(const ValueList& params, EvalEnv& env);
+        ValuePtr lambdaForm(const ValueList& params, EvalEnv& env);
+        ValuePtr defineForm(const ValueList& params, EvalEnv& env);
+        ValuePtr quoteForm(const ValueList& params, EvalEnv& env);
         ValuePtr ifForm(const ValueList& params, EvalEnv& env);
         ValuePtr andForm(const ValueList& params, EvalEnv& env);
         ValuePtr orForm(const ValueList& params, EvalEnv& env);

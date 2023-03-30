@@ -170,7 +170,7 @@ ValuePtr PairValue::right()
 
 bool PairValue::isList()
 {
-    return pRightValue->isType(ValueType::NilType);
+    return pRightValue->isType(ValueType::NilType) || pRightValue->isType(ValueType::PairType) && static_pointer_cast<PairValue>(pRightValue)->isList();
 }
 
 string PairValue::extractString(bool isOnRight) const
@@ -226,11 +226,11 @@ void ProcValue::checkValidParamCnt(const ValueList& params)
 {
     if (minParamCnt != UnlimitedCnt && params.size() < minParamCnt)
     {
-        throw LispError("Too few " + paramName() + ": " + to_string(params.size()) + " < " + to_string(minParamCnt));
+        throw TooFewArgumentsError("");
     }
     if (maxParamCnt != UnlimitedCnt && params.size() > maxParamCnt)
     {
-        throw LispError("Too many " + paramName() + ": " + to_string(params.size()) + " > " + to_string(maxParamCnt));
+        throw TooManyArgumentsError("");
     }
 }
 
@@ -275,9 +275,20 @@ int BuiltinProcValue::getTypeID() const
     return ValueType::BuiltinProcType;
 }
 
-string BuiltinProcValue::paramName() const
+void BuiltinProcValue::checkValidParamCnt(const ValueList& params)
 {
-    return "arguments";
+    try
+    {
+        ProcValue::checkValidParamCnt(params);
+    }
+    catch (TooFewArgumentsError& e)
+    {
+        throw LispError("Too few arguments: " + to_string(params.size()) + " < " + to_string(minParamCnt));
+    }
+    catch (TooManyArgumentsError& e)
+    {
+        throw LispError("Too many arguments: " + to_string(params.size()) + " > " + to_string(maxParamCnt));
+    }
 }
 
 bool ListValue::isEmpty()
@@ -290,7 +301,42 @@ int SpecialFormValue::getTypeID() const
     return ValueType::SpecialFormType;
 }
 
-string SpecialFormValue::paramName() const
+void SpecialFormValue::checkValidParamCnt(const ValueList& params)
 {
-    return "operands";
+    try
+    {
+        ProcValue::checkValidParamCnt(params);
+    }
+    catch (TooFewArgumentsError& e)
+    {
+        throw LispError("Too few operands: " + to_string(params.size()) + " < " + to_string(minParamCnt));
+    }
+    catch (TooManyArgumentsError& e)
+    {
+        throw LispError("Too many operands: " + to_string(params.size()) + " > " + to_string(maxParamCnt));
+    }
+}
+
+ValuePtr LambdaValue::standardLambdaProc(const ValueList& values, EvalEnv& env)
+{
+    ValuePtr result;
+    for (auto& value : values)
+        result = env.eval(value);
+    return result;
+}
+
+int LambdaValue::getTypeID() const
+{
+    return ValueType::LambdaType;
+}
+
+ValuePtr LambdaValue::call(const ValueList& params, EvalEnv& env)
+{
+    return ProcValue::call(params, env);
+}
+
+void LambdaValue::checkValidParamCnt(const ValueList& params)
+{
+    if (params.size() != minParamCnt)
+        throw LispError("Procedure expected " + to_string(minParamCnt) + " parameters, got " + to_string(params.size()));
 }
