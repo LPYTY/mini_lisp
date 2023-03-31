@@ -43,7 +43,7 @@ public:
     int exitCode() const;
 };
 
-class IntenalError
+class InterpreterError
     :public std::runtime_error
 {
 public:

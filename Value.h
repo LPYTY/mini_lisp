@@ -185,8 +185,8 @@ public:
     string toString() const override;
     static void assertParamCnt(const ValueList& params, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt);
 protected:
-    void checkValidParamCnt(const ValueList& params);
-    void checkValidParamType(const ValueList& params);
+    virtual void checkValidParamCnt(const ValueList& params);
+    virtual void checkValidParamType(const ValueList& params);
 };
 
 using ProcPtr = shared_ptr<ProcValue>;
@@ -199,7 +199,7 @@ public:
     int getTypeID() const override;
     static void assertParamCnt(const ValueList& params, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt);
 protected:
-    void checkValidParamCnt(const ValueList& params);
+    virtual void checkValidParamCnt(const ValueList& params) override;
 };
 
 class SpecialFormValue
@@ -210,7 +210,7 @@ public:
     int getTypeID() const override;
     static void assertParamCnt(const ValueList& params, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt);
 protected:
-    void checkValidParamCnt(const ValueList& params);
+    virtual void checkValidParamCnt(const ValueList& params) override;
 };
 
 class LambdaValue
@@ -226,7 +226,7 @@ public:
     ValuePtr call(const ValueList& params, EvalEnv& env) override;
     static void assertParamCnt(const ValueList& params, int argCnt = UnlimitedCnt);
 protected:
-    void checkValidParamCnt(const ValueList& params);
+    virtual void checkValidParamCnt(const ValueList& params) override;
     EnvPtr prepareEvalEnv(const ValueList& params);
 };
 

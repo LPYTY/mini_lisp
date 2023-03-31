@@ -65,6 +65,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -78,6 +79,7 @@
     <ClCompile Include="error.cpp" />
     <ClCompile Include="eval_env.cpp" />
     <ClCompile Include="forms.cpp" />
+    <ClCompile Include="interpreter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="token.cpp" />
@@ -89,6 +91,7 @@
     <ClInclude Include="error.h" />
     <ClInclude Include="eval_env.h" />
     <ClInclude Include="forms.h" />
+    <ClInclude Include="interpreter.h" />
     <ClInclude Include="parser.h" />
     <ClInclude Include="token.h" />
     <ClInclude Include="tokenizer.h" />
