@@ -55,6 +55,11 @@ void EvalEnv::defineVariable(const string& name, ValuePtr value)
     symbolTable[name] = value;
 }
 
+void EvalEnv::undefVariable(const string& name)
+{
+    symbolTable.erase(name);
+}
+
 ValuePtr EvalEnv::eval(ValuePtr expr)
 {
     if (expr->isType(ValueType::SelfEvaluatingType))

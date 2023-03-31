@@ -183,9 +183,10 @@ public:
         :proc(procedure), minParamCnt(minArgs), maxParamCnt(maxArgs), paramType(type) {}
     virtual ValuePtr call(const ValueList& args, EvalEnv& env);
     string toString() const override;
+    static void assertParamCnt(const ValueList& params, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt);
 protected:
-    virtual void checkValidParamCnt(const ValueList& params);
-    virtual void checkValidParamType(const ValueList& params);
+    void checkValidParamCnt(const ValueList& params);
+    void checkValidParamType(const ValueList& params);
 };
 
 using ProcPtr = shared_ptr<ProcValue>;
@@ -196,8 +197,9 @@ class BuiltinProcValue
 public:
     using ProcValue::ProcValue;
     int getTypeID() const override;
+    static void assertParamCnt(const ValueList& params, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt);
 protected:
-    virtual void checkValidParamCnt(const ValueList& params) override;
+    void checkValidParamCnt(const ValueList& params);
 };
 
 class SpecialFormValue
@@ -206,8 +208,9 @@ class SpecialFormValue
 public:
     using ProcValue::ProcValue;
     int getTypeID() const override;
+    static void assertParamCnt(const ValueList& params, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt);
 protected:
-    virtual void checkValidParamCnt(const ValueList& params) override;
+    void checkValidParamCnt(const ValueList& params);
 };
 
 class LambdaValue
@@ -221,8 +224,9 @@ public:
     LambdaValue(const vector<string>& paramsDefinition, const ValueList& bodyDefinition, EnvPtr parentEvalEnv);
     int getTypeID() const override;
     ValuePtr call(const ValueList& params, EvalEnv& env) override;
+    static void assertParamCnt(const ValueList& params, int argCnt = UnlimitedCnt);
 protected:
-    virtual void checkValidParamCnt(const ValueList& params) override;
+    void checkValidParamCnt(const ValueList& params);
     EnvPtr prepareEvalEnv(const ValueList& params);
 };
 

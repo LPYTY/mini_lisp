@@ -32,13 +32,18 @@ namespace SpecialForm
         ValuePtr defineForm(const ValueList& params, EvalEnv& env);
         ValuePtr quoteForm(const ValueList& params, EvalEnv& env);
         ValuePtr ifForm(const ValueList& params, EvalEnv& env);
-        ValuePtr andForm(const ValueList& params, EvalEnv& env);
-        ValuePtr orForm(const ValueList& params, EvalEnv& env);
+
     }
     
     namespace Derived
     {
-
+        ValuePtr condForm(const ValueList& params, EvalEnv& env);
+        ValuePtr letForm(const ValueList& params, EvalEnv& env);
+        ValuePtr beginForm(const ValueList& params, EvalEnv& env);
+        ValuePtr andForm(const ValueList& params, EvalEnv& env);
+        ValuePtr orForm(const ValueList& params, EvalEnv& env);
+        ValuePtr quasiquoteForm(const ValueList& params, EvalEnv& env);
+        ValuePtr unquoteForm(const ValueList& params, EvalEnv& env);
     }
 }
 

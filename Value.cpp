@@ -154,7 +154,7 @@ shared_ptr<ListValue> ListValue::fromDeque(deque<ValuePtr>& q)
 ValueList PairValue::toVector()
 {
     if (!pRightValue->isType(ValueType::ListType))
-        throw LispError("Malformed list: expected pair or nil, got " + pRightValue->toString() + ".");
+        throw LispError("Malformed list: expected pair or nil, got " + pRightValue->toString());
     ValueList leftVector, rightVector = pRightValue->toVector();
     leftVector.push_back(pLeftValue);
     leftVector.insert(leftVector.end(), rightVector.begin(), rightVector.end());
@@ -225,16 +225,21 @@ string ProcValue::toString() const
     return "#procedure";
 }
 
-void ProcValue::checkValidParamCnt(const ValueList& params)
+void ProcValue::assertParamCnt(const ValueList& params, int minArgs, int maxArgs)
 {
-    if (minParamCnt != UnlimitedCnt && params.size() < minParamCnt)
+    if (minArgs != UnlimitedCnt && params.size() < minArgs)
     {
         throw TooFewArgumentsError("");
     }
-    if (maxParamCnt != UnlimitedCnt && params.size() > maxParamCnt)
+    if (maxArgs != UnlimitedCnt && params.size() > maxArgs)
     {
         throw TooManyArgumentsError("");
     }
+}
+
+void ProcValue::checkValidParamCnt(const ValueList& params)
+{
+    assertParamCnt(params, minParamCnt, maxParamCnt);
 }
 
 void ProcValue::checkValidParamType(const ValueList& params)
@@ -278,20 +283,25 @@ int BuiltinProcValue::getTypeID() const
     return ValueType::BuiltinProcType;
 }
 
-void BuiltinProcValue::checkValidParamCnt(const ValueList& params)
+void BuiltinProcValue::assertParamCnt(const ValueList& params, int minArgs, int maxArgs)
 {
     try
     {
-        ProcValue::checkValidParamCnt(params);
+        ProcValue::assertParamCnt(params, minArgs, maxArgs);
     }
     catch (TooFewArgumentsError& e)
     {
-        throw LispError("Too few arguments: " + to_string(params.size()) + " < " + to_string(minParamCnt));
+        throw LispError("Too few arguments: " + to_string(params.size()) + " < " + to_string(minArgs));
     }
     catch (TooManyArgumentsError& e)
     {
-        throw LispError("Too many arguments: " + to_string(params.size()) + " > " + to_string(maxParamCnt));
+        throw LispError("Too many arguments: " + to_string(params.size()) + " > " + to_string(maxArgs));
     }
+}
+
+void BuiltinProcValue::checkValidParamCnt(const ValueList& params)
+{
+    assertParamCnt(params, minParamCnt, maxParamCnt);
 }
 
 bool ListValue::isEmpty()
@@ -304,20 +314,25 @@ int SpecialFormValue::getTypeID() const
     return ValueType::SpecialFormType;
 }
 
-void SpecialFormValue::checkValidParamCnt(const ValueList& params)
+void SpecialFormValue::assertParamCnt(const ValueList& params, int minArgs, int maxArgs)
 {
     try
     {
-        ProcValue::checkValidParamCnt(params);
+        ProcValue::assertParamCnt(params, minArgs, maxArgs);
     }
     catch (TooFewArgumentsError& e)
     {
-        throw LispError("Too few operands: " + to_string(params.size()) + " < " + to_string(minParamCnt));
+        throw LispError("Too few operands: " + to_string(params.size()) + " < " + to_string(minArgs));
     }
     catch (TooManyArgumentsError& e)
     {
-        throw LispError("Too many operands: " + to_string(params.size()) + " > " + to_string(maxParamCnt));
+        throw LispError("Too many operands: " + to_string(params.size()) + " > " + to_string(maxArgs));
     }
+}
+
+void SpecialFormValue::checkValidParamCnt(const ValueList& params)
+{
+    assertParamCnt(params, minParamCnt, maxParamCnt);
 }
 
 ValuePtr LambdaValue::standardLambdaProc(const ValueList& values, EvalEnv& env)
@@ -345,10 +360,15 @@ ValuePtr LambdaValue::call(const ValueList& params, EvalEnv& env)
     return proc(body, *lambdaEnv);
 }
 
+void LambdaValue::assertParamCnt(const ValueList& params, int argCnt)
+{
+    if (params.size() != argCnt)
+        throw LispError("Procedure expected " + to_string(argCnt) + " parameters, got " + to_string(params.size()));
+}
+
 void LambdaValue::checkValidParamCnt(const ValueList& params)
 {
-    if (params.size() != minParamCnt)
-        throw LispError("Procedure expected " + to_string(minParamCnt) + " parameters, got " + to_string(params.size()));
+    assertParamCnt(params, minParamCnt);
 }
 
 EnvPtr LambdaValue::prepareEvalEnv(const ValueList& params)

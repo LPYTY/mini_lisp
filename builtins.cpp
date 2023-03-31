@@ -237,12 +237,8 @@ namespace Builtin
             {
                 return make_shared<NumericValue>(-*params[0]->asNumber());
             }
-            case 2:
-            {
-                return make_shared<NumericValue>(*params[0]->asNumber() - *params[1]->asNumber());
-            }
             default:
-                break;
+                return make_shared<NumericValue>(*params[0]->asNumber() - *params[1]->asNumber());
             }
         }
 

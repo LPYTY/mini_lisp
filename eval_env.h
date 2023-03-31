@@ -29,6 +29,7 @@ public:
     ProcPtr findForm(const string& name);
     ValuePtr findValue(const string& name);
     void defineVariable(const string& name, ValuePtr value);
+    void undefVariable(const string& name);
     ValuePtr eval(ValuePtr expr);
     ValueList evalParams(const ValueList& list);
     ValueList evalParams(ValuePtr list);
