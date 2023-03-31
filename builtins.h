@@ -9,6 +9,8 @@
 #include <cmath>
 #include <complex>
 #include <functional>
+#include <ranges>
+#include <algorithm>
 
 #include "./value.h"
 
@@ -34,8 +36,12 @@ namespace Builtin
 
     namespace Core
     {
+        ValuePtr apply(const ValueList& params, EvalEnv& e);
         ValuePtr print(const ValueList& params, EvalEnv& e);
         ValuePtr display(const ValueList& params, EvalEnv& e);
+        ValuePtr displayln(const ValueList& params, EvalEnv& e);
+        ValuePtr error(const ValueList& params, EvalEnv& e);
+        ValuePtr eval(const ValueList& params, EvalEnv& e);
         ValuePtr exit(const ValueList& params, EvalEnv& e);
         ValuePtr newline(const ValueList& params, EvalEnv& e);
     }
@@ -59,6 +65,9 @@ namespace Builtin
         ValuePtr cons(const ValueList& params, EvalEnv& e);
         ValuePtr length(const ValueList& params, EvalEnv& e);
         ValuePtr list(const ValueList& params, EvalEnv& e);
+        ValuePtr map(const ValueList& params, EvalEnv& e);
+        ValuePtr filter(const ValueList& params, EvalEnv& e);
+        ValuePtr reduce(const ValueList& params, EvalEnv& e);
     }
 
     namespace Math
@@ -76,7 +85,9 @@ namespace Builtin
 
     namespace Compare
     {
+        ValuePtr eq(const ValueList& params, EvalEnv& e);
         ValuePtr equal(const ValueList& params, EvalEnv& e);
+        ValuePtr _not(const ValueList& params, EvalEnv& e);
         ValuePtr less(const ValueList& params, EvalEnv& e);
         ValuePtr more(const ValueList& params, EvalEnv& e);
         ValuePtr lessOrEqual(const ValueList& params, EvalEnv& e);
@@ -90,4 +101,3 @@ namespace Builtin
 extern unordered_map<string, ProcPtr> allBuiltins;
 
 #endif // !BUILTINS_H
-

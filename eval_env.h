@@ -5,6 +5,7 @@
 #include <memory>
 #include <stdexcept>
 #include <algorithm>
+#include <ranges>
 
 #include "./value.h"
 #include "./error.h"
@@ -29,8 +30,10 @@ public:
     ValuePtr findValue(const string& name);
     void defineVariable(const string& name, ValuePtr value);
     ValuePtr eval(ValuePtr expr);
+    ValueList evalParams(const ValueList& list);
     ValueList evalParams(ValuePtr list);
-    ValuePtr apply(ValuePtr proc, const ValueList& params);
+    ValuePtr apply(ValuePtr proc, ValuePtr params);
+    ValuePtr applyProc(ValuePtr proc, const ValueList& params);
 };
 
 

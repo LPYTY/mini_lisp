@@ -24,7 +24,10 @@ namespace ValueType
         case SpecialFormType:
             return "special form";
         case ListType:
-            return "pair or nil";
+            return "list";
+        case ProcedureType:
+        case FunctionType:
+            return "procedure";
         default:
             break;
         }

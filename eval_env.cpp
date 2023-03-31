@@ -70,12 +70,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr)
         ValuePtr proc = eval(value[0]);
         if (!proc->isType(ValueType::ProcedureType))
             throw LispError("Not a procedure " + proc->toString());
-        ValueList args;
-        if (!proc->isType(ValueType::SpecialFormType))
-            args = evalParams(expr);
-        else
-            args.insert(args.end(), value.begin() + 1, value.end());
-        return apply(proc, args);
+        return apply(proc, static_pointer_cast<PairValue>(expr)->right());
     }
     else if (auto name = expr->asSymbol())
     {
@@ -98,22 +93,37 @@ ValuePtr EvalEnv::eval(ValuePtr expr)
     throw LispError("Unimplemented");
 }
 
-ValueList EvalEnv::evalParams(ValuePtr list)
+ValueList EvalEnv::evalParams(const ValueList& list)
 {
-    if (!list->isType(ValueType::ListType))
-        throw LispError("Unimplemented");
     ValueList results;
-    ValueList v = list->toVector();
-    std::transform(
-        v.begin() + 1,
-        v.end(),
+    std::ranges::transform(
+        list,
         std::back_inserter(results),
         [this](ValuePtr value) { return this->eval(value); }
     );
     return results;
 }
 
-ValuePtr EvalEnv::apply(ValuePtr proc, const ValueList& params)
+ValueList EvalEnv::evalParams(ValuePtr list)
 {
-    return static_pointer_cast<ProcValue>(proc)->call(params, *this);
+    ValueList v = list->toVector();
+    return evalParams(v);
+}
+
+ValuePtr EvalEnv::apply(ValuePtr proc, ValuePtr params)
+{
+    ValueList args;
+    if (!proc->isType(ValueType::SpecialFormType))
+        args = evalParams(params);
+    else
+    {
+        auto paramList = params->toVector();
+        args.insert(args.end(), paramList.begin(), paramList.end());
+    }
+    return static_pointer_cast<ProcValue>(proc)->call(args, *this);
+}
+
+ValuePtr EvalEnv::applyProc(ValuePtr proc, const ValueList& params)
+{
+    return static_pointer_cast<ProcValue>(proc)->call(evalParams(params), *this);
 }

@@ -1,4 +1,5 @@
 #include "./builtins.h"
+#include "./eval_env.h"
 
 using namespace std::literals;
 using std::make_pair;
@@ -31,6 +32,13 @@ namespace Builtin
 
     namespace Core
     {
+        ValuePtr apply(const ValueList& params, EvalEnv& e)
+        {
+            if (params[0]->isType(ValueType::SpecialFormType))
+                throw LispError("Unbound variable " + params[0]->toString());
+            return e.apply(params[0], params[1]);
+        }
+
         ValuePtr print(const ValueList& params, EvalEnv& e)
         {
             for (auto& p : params)
@@ -45,6 +53,21 @@ namespace Builtin
                 cout << (p->isType(ValueType::StringType) ? std::static_pointer_cast<StringValue>(p)->value() : p->toString()) << endl;
             }
             return make_shared<NilValue>();
+        }
+
+        ValuePtr displayln(const ValueList& params, EvalEnv& e)
+        {
+            return display(params, e), newline(params, e);
+        }
+
+        ValuePtr error(const ValueList& params, EvalEnv& e)
+        {
+            throw LispError(params[0]->toString());
+        }
+
+        ValuePtr eval(const ValueList& params, EvalEnv& e)
+        {
+            return e.eval(params[0]);
         }
 
         ValuePtr exit(const ValueList& params, EvalEnv& e)
@@ -126,6 +149,67 @@ namespace Builtin
         {
             return ListValue::fromVector(params);
         }
+
+        ValuePtr map(const ValueList& params, EvalEnv& e)
+        {
+            auto proc = static_pointer_cast<ProcValue>(params[0]);
+            ValueList resultList;
+            vector<ValueList> paramLists;
+            for (size_t i = 1; i < params.size(); i++)
+                paramLists.push_back(params[i]->toVector());
+            size_t maxSize = 0;
+            for (auto& list : paramLists)
+            {
+                if (list.size() > maxSize)
+                    maxSize = list.size();
+            }
+            for (size_t i = 0; i < maxSize; i++)
+            {
+                ValueList args;
+                std::ranges::for_each(
+                    paramLists,
+                    [&args, i](auto& list)
+                    {
+                        if (i < list.size())
+                            args.push_back(list[i]);
+                    }
+                );
+                resultList.push_back(e.applyProc(proc, args));
+            }
+            return ListValue::fromVector(resultList);
+        }
+
+        ValuePtr filter(const ValueList& params, EvalEnv& e)
+        {
+            auto proc = static_pointer_cast<ProcValue>(params[0]);
+            auto paramList = params[1]->toVector();
+            ValueList resultList;
+            for (auto& value : paramList)
+            {
+                if (*e.applyProc(proc, { value }))
+                    resultList.push_back(value);
+            }
+            return ListValue::fromVector(resultList);
+        }
+
+        ValuePtr reduce(const ValueList& params, EvalEnv& e)
+        {
+            auto proc = static_pointer_cast<ProcValue>(params[0]);
+            auto paramList = params[1]->toVector();
+            switch (paramList.size())
+            {
+            case 0:
+                throw LispError("reduce list must have at least 1 element");
+            case 1:
+                return paramList[0];
+            default:
+            {
+                auto paramPair = static_pointer_cast<PairValue>(params[1]);
+                return e.applyProc(proc, { paramPair->left(), reduce({proc, paramPair->right()},e) });
+            }
+            }
+        }
+
     }
 
     namespace Math
@@ -261,9 +345,30 @@ namespace Builtin
 
     namespace Compare
     {
+        ValuePtr eq(const ValueList& params, EvalEnv& e)
+        {
+            if (params[0]->getTypeID() != params[1]->getTypeID())
+                return make_shared<BooleanValue>(false);
+            if (params[0]->isType(
+                ValueType::BooleanType |
+                ValueType::NumericType |
+                ValueType::ProcedureType |
+                ValueType::NilType |
+                ValueType::SymbolType
+            ))
+                return make_shared<BooleanValue>(params[0]->toString() == params[1]->toString());
+            else
+                return make_shared<BooleanValue>(params[0] == params[1]);
+        }
+
         ValuePtr equal(const ValueList& params, EvalEnv& e)
         {
             return make_shared<BooleanValue>(params[0]->getTypeID() == params[1]->getTypeID() && params[0]->toString() == params[1]->toString());
+        }
+
+        ValuePtr _not(const ValueList& params, EvalEnv& e)
+        {
+            return make_shared<BooleanValue>(!*params[0]);
         }
 
         ValuePtr less(const ValueList& params, EvalEnv& e)
@@ -308,10 +413,15 @@ using namespace Builtin::Helper;
 
 unordered_map<string, ProcPtr> allBuiltins =
 {
+    BuiltinItem("apply"s, Builtin::Core::apply, 2, 2, {ValueType::FunctionType, ValueType::ListType}),
     BuiltinItem("print"s, Builtin::Core::print),
     BuiltinItem("display"s, Builtin::Core::display),
+    BuiltinItem("displayln"s, Builtin::Core::displayln),
+    BuiltinItem("error"s, Builtin::Core::error, 1),
+    BuiltinItem("eval"s, Builtin::Core::eval, 1, 1),
     BuiltinItem("exit"s, Builtin::Core::exit, ProcValue::UnlimitedCnt, 1),
     BuiltinItem("newline"s, Builtin::Core::newline),
+
     BuiltinItem("atom?"s, Builtin::TypeCheck::isType<ValueType::AtomType>, 1, 1),
     BuiltinItem("boolean?"s, Builtin::TypeCheck::isType<ValueType::BooleanType>, 1,1),
     BuiltinItem("number?"s, Builtin::TypeCheck::isType<ValueType::NumericType>, 1, 1),
@@ -322,12 +432,17 @@ unordered_map<string, ProcPtr> allBuiltins =
     BuiltinItem("symbol?"s, Builtin::TypeCheck::isType<ValueType::SymbolType>, 1, 1),
     BuiltinItem("integer?"s, Builtin::TypeCheck::isInteger, 1, 1),
     BuiltinItem("list?"s, Builtin::TypeCheck::isList, 1, 1),
+
     BuiltinItem("append"s, Builtin::ListOperator::append),
     BuiltinItem("car"s, Builtin::ListOperator::car, 1),
     BuiltinItem("cdr"s, Builtin::ListOperator::cdr, 1),
     BuiltinItem("cons"s, Builtin::ListOperator::cons, 2),
     BuiltinItem("length"s, Builtin::ListOperator::length, 1),
     BuiltinItem("list"s, Builtin::ListOperator::list),
+    BuiltinItem("map"s, Builtin::ListOperator::map, 2, ProcValue::UnlimitedCnt, {ValueType::ProcedureType, ValueType::ListType, ProcValue::SameToRest}),
+    BuiltinItem("filter"s, Builtin::ListOperator::filter, 2, 2, {ValueType::ProcedureType, ValueType::ListType}),
+    BuiltinItem("reduce"s, Builtin::ListOperator::reduce, 2, 2,{ValueType::ProcedureType, ValueType::ListType}),
+
     BuiltinItem("+"s, Builtin::Math::add, ProcValue::UnlimitedCnt, ProcValue::UnlimitedCnt, {ValueType::NumericType, ProcValue::SameToRest}),
     BuiltinItem("-"s, Builtin::Math::minus, 1, 2, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("*"s, Builtin::Math::multiply, ProcValue::UnlimitedCnt, ProcValue::UnlimitedCnt, {ValueType::NumericType, ProcValue::SameToRest}),
@@ -337,6 +452,11 @@ unordered_map<string, ProcPtr> allBuiltins =
     BuiltinItem("quotient"s, Builtin::Math::quotient, 2, 2, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("remainder"s, Builtin::Math::remainder, 2, 2, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("modulo"s, Builtin::Math::modulo, 2, 2, {ValueType::NumericType, ValueType::NumericType}),
+
+
+    BuiltinItem("eq?"s, Builtin::Compare::eq, 2, 2),
+    BuiltinItem("equal?"s, Builtin::Compare::equal, 2, 2),
+    BuiltinItem("not"s, Builtin::Compare::_not, 1),
     BuiltinItem("="s, Builtin::Compare::equal, 2, 2, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("<"s, Builtin::Compare::less, 2, 2, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem(">"s, Builtin::Compare::more, 2, 2, {ValueType::NumericType, ValueType::NumericType}),

@@ -33,7 +33,8 @@ namespace ValueType
     const int SelfEvaluatingType = BooleanType | NumericType | StringType | BuiltinProcType | SpecialFormType | LambdaType;
     const int ListType           = NilType | PairType;
     const int AtomType           = BooleanType | NumericType | StringType | SymbolType | NilType;
-    const int ProcedureType      = BuiltinProcType | SpecialFormType |LambdaType;
+    const int ProcedureType      = BuiltinProcType | SpecialFormType | LambdaType;
+    const int FunctionType           = BuiltinProcType | LambdaType;
     const int AllType            = BooleanType | NumericType | StringType | NilType | SymbolType | PairType | BuiltinProcType | SpecialFormType | LambdaType;
 
     string typeName(int typeID);
