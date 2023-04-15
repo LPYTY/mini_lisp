@@ -7,15 +7,13 @@
 #include "./eval_env.h"
 #include "./interpreter.h"
 
-Interpreter interpreter;
-
 int main(int argc, const char ** argv) 
 {
-    interpreter.initialize(argc, argv);
+    std::shared_ptr<Interpreter> interpreter = Interpreter::createInterpreter(argc, argv);
     int exitCode = 0;
     try
     {
-        exitCode = interpreter.run();
+        exitCode = interpreter->run();
     }
     catch (SyntaxError& e)
     {

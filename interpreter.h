@@ -12,7 +12,7 @@
 #include "./parser.h"
 #include "./eval_env.h"
 
-using std::istream, std::cin, std::cout, std::endl, std::ifstream, std::string, std::streambuf, std::shared_ptr, std::make_shared, std::deque;
+using std::istream, std::cin, std::cout, std::cerr, std::endl, std::ifstream, std::string, std::streambuf, std::shared_ptr, std::make_shared, std::deque;
 
 enum InterpreterMode
 {
@@ -23,8 +23,8 @@ enum InterpreterMode
 class Interpreter
 {
     InterpreterMode mode;
+    istream* pSource;
     ifstream sourceFile;
-    streambuf* originalCinBuf;
     EnvPtr globalEvalEnv;
     int exitCode;
     deque<ValuePtr> values;
@@ -32,14 +32,14 @@ private:
     void setMode(InterpreterMode m);
     InterpreterMode getMode() const;
     void openSource(const string& fileName);
-    void closeSource();
+    istream& inputStream();
     bool tokenizeAndParseLine();
     void cleanUpValueList();
     ValuePtr evalAll();
+    Interpreter();
+    Interpreter(const string& fileName);
 public:
-    Interpreter()
-        :mode(InterpreterMode::REPLMODE), originalCinBuf(nullptr), exitCode(0) {}
-    void initialize(int argc, const char ** argv);
+    static shared_ptr<Interpreter> createInterpreter(int argc, const char** argv);
     int run();
     ~Interpreter();
 };

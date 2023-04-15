@@ -15,25 +15,20 @@ void Interpreter::openSource(const string& fileName)
     sourceFile.open(fileName);
     if (!sourceFile.is_open())
         throw InterpreterError("Open file \"" + fileName + "\" failed");
-    originalCinBuf = cin.rdbuf(sourceFile.rdbuf());
-    mode = InterpreterMode::FILEMODE;
+    pSource = &sourceFile;
 }
 
-void Interpreter::closeSource()
+istream& Interpreter::inputStream()
 {
-    if (originalCinBuf)
-        cin.rdbuf(originalCinBuf);
-    originalCinBuf = nullptr;
-    sourceFile.close();
-    mode = InterpreterMode::REPLMODE;
+    return *pSource;
 }
 
 bool Interpreter::tokenizeAndParseLine()
 {
     bool ret = true;
     string line;
-    getline(cin, line);
-    if (cin.eof())
+    getline(inputStream(), line);
+    if (inputStream().eof())
     {
         ret = false;
         if (line.size() == 0)
@@ -63,17 +58,25 @@ ValuePtr Interpreter::evalAll()
     return result;
 }
 
-void Interpreter::initialize(int argc, const char** argv)
+Interpreter::Interpreter()
+    :mode{ InterpreterMode::REPLMODE }, pSource{ &cin }, sourceFile{}, exitCode{ 0 }
+{
+    globalEvalEnv = EvalEnv::createGlobal();
+}
+
+Interpreter::Interpreter(const string& fileName)
+    :mode{ InterpreterMode::FILEMODE }, pSource{ nullptr }, sourceFile{}, exitCode{ 0 }
+{
+    openSource(fileName);
+    globalEvalEnv = EvalEnv::createGlobal();
+}
+
+shared_ptr<Interpreter> Interpreter::createInterpreter(int argc, const char** argv)
 {
     if (argc == 1)
-        mode = InterpreterMode::REPLMODE;
+        return shared_ptr<Interpreter>(new Interpreter);
     else
-    {
-        mode = InterpreterMode::FILEMODE;
-        openSource(argv[1]);
-    }
-    exitCode = 0;
-    globalEvalEnv = EvalEnv::createGlobal();
+        return shared_ptr<Interpreter>(new Interpreter(argv[1]));
 }
 
 int Interpreter::run()
@@ -83,11 +86,11 @@ int Interpreter::run()
         try
         {
             if (mode == InterpreterMode::REPLMODE)
-                std::cout << ">>> ";
+                cout << ">>> ";
             bool isEOF = tokenizeAndParseLine();
             if (mode == InterpreterMode::REPLMODE)
                 if (!values.empty())
-                    std::cout << evalAll()->toString() << std::endl;
+                    cout << evalAll()->toString() << endl;
             if(!isEOF)
                 break;
         }
@@ -100,7 +103,7 @@ int Interpreter::run()
         {
             if (mode == InterpreterMode::REPLMODE)
             {
-                std::cerr << "SyntaxError: " << e.what() << std::endl;
+                cerr << "SyntaxError: " << e.what() << endl;
                 cleanUpValueList();
             }
             else
@@ -133,5 +136,4 @@ int Interpreter::run()
 
 Interpreter::~Interpreter()
 {
-    closeSource();
 }
