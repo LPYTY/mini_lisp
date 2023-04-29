@@ -12,22 +12,6 @@ namespace Builtin
         {
             return make_pair(name, make_shared<BuiltinProcValue>(func, minArgs, maxArgs, paramType));
         }
-
-        double intNearZero(double x)
-        {
-            if (x == static_cast<long long>(x))
-            {
-                return x;
-            }
-            else if (x >= 0)
-            {
-                return static_cast<long long>(x);
-            }
-            else
-            {
-                return static_cast<long long>(x) + 1;
-            }
-        }
     }
 
     namespace Core
@@ -311,7 +295,7 @@ namespace Builtin
             if (y == 0)
                 throw LispError("Divided by 0");
             double result = x / y;
-            return make_shared<NumericValue>(intNearZero(result));
+            return make_shared<NumericValue>(static_cast<long long>(result));
         }
 
         ValuePtr remainder(const ValueList& params, EvalEnv& e)
@@ -319,7 +303,7 @@ namespace Builtin
             double x = *params[0]->asNumber(), y = *params[1]->asNumber();
             if (y == 0)
                 throw LispError("Divided by 0");
-            return make_shared<NumericValue>(x - y * intNearZero(x / y));
+            return make_shared<NumericValue>(x - y * static_cast<long long>(x / y));
         }
 
         ValuePtr modulo(const ValueList& params, EvalEnv& e)
@@ -328,11 +312,11 @@ namespace Builtin
             double result = x;
             if (y != 0)
             {
-                result = x - intNearZero(x / y) * y;
-                if (result < 0 && y > 0)
+                result = x - static_cast<long long>(x / y) * y;
+                if (result * y < 0)
                     result += y;
-                if (result > 0 && y < 0)
-                    result -= y;
+                //if (result > 0 && y < 0)
+                    //result -= y;
             }
             return make_shared<NumericValue>(result);
         }
@@ -389,12 +373,12 @@ namespace Builtin
 
         ValuePtr isEven(const ValueList& params, EvalEnv& e)
         {
-            return make_shared<BooleanValue>(static_pointer_cast<NumericValue>(params[0])->isInteger() && (static_cast<long long>(*params[0]->asNumber()) % 2 == 0));
+            return make_shared<BooleanValue>(static_pointer_cast<NumericValue>(params[0])->isInteger() && (std::abs(static_cast<long long>(*params[0]->asNumber())) % 2 == 0));
         }
 
         ValuePtr isOdd(const ValueList& params, EvalEnv& e)
         {
-            return make_shared<BooleanValue>(static_pointer_cast<NumericValue>(params[0])->isInteger() && (static_cast<long long>(*params[0]->asNumber()) % 2 == 1));
+            return make_shared<BooleanValue>(static_pointer_cast<NumericValue>(params[0])->isInteger() && (std::abs(static_cast<long long>(*params[0]->asNumber())) % 2 == 1));
         }
 
         ValuePtr isZero(const ValueList& params, EvalEnv& e)

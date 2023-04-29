@@ -72,22 +72,26 @@ namespace SpecialForm
         using namespace Primary;
         ValuePtr andForm(const ValueList& params, EvalEnv& env)
         {
+            ValuePtr result = make_shared<BooleanValue>(true);
             for (auto& value : params)
             {
-                if (!*env.eval(value))
-                    return make_shared<BooleanValue>(false);
+                result = env.eval(value);
+                if (!*result)
+                    break;
             }
-            return make_shared<BooleanValue>(true);
+            return result;
         }
 
         ValuePtr orForm(const ValueList& params, EvalEnv& env)
         {
+            ValuePtr result = make_shared<BooleanValue>(false);
             for (auto& value : params)
             {
-                if (*env.eval(value))
-                    return make_shared<BooleanValue>(true);
+                result = env.eval(value);
+                if (*result)
+                    break;
             }
-            return make_shared<BooleanValue>(false);
+            return result;
         }
 
         ValuePtr condForm(const ValueList& params, EvalEnv& env)
@@ -111,10 +115,11 @@ namespace SpecialForm
                     result = currentEnv.eval(subList[0]);
                 else
                 {
-                    if (env.eval(subList[0]))
+                    if (*currentEnv.eval(subList[0]))
                     {
                         for (size_t i = 1; i < subList.size(); i++)
                             result = currentEnv.eval(subList[i]);
+                        return result;
                     }
                 }
             }

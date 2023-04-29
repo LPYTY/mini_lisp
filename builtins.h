@@ -29,8 +29,6 @@ namespace Builtin
             int maxArgs = ProcValue::UnlimitedCnt,
             const vector<int>& paramType = ProcValue::UnlimitedType
         );
-
-        double intNearZero(double x);
     }
     using namespace Builtin::Helper;
 

@@ -76,9 +76,35 @@ optional<double> NumericValue::asNumber() const
     return dValue;
 }
 
+string StringValue::escChars = { '\"', '\\' };
+
 string StringValue::toString() const
 {
-    return '"' + szValue + '"';
+    vector<size_t> escPos;
+    string result = "\"";
+    for (size_t lastPos = 0; (lastPos = szValue.find_first_of(escChars, lastPos)) != string::npos; lastPos++)
+    {
+        escPos.push_back(lastPos);
+    }
+    for (size_t startPos = 0, i = 0, endPos = 0; i <= escPos.size(); i++)
+    {
+        if (i < escPos.size())
+        {
+            endPos = escPos[i];
+        }
+        else
+        {
+            endPos = szValue.size();
+        }
+        result += std::string_view(szValue.c_str() + startPos, endPos - startPos);
+        if (i < escPos.size())
+        {
+            result += "\\";
+            startPos = endPos;
+        }
+    }
+    result += "\"";
+    return result;
 }
 
 int StringValue::getTypeID() const
@@ -113,7 +139,7 @@ bool NilValue::isList()
 
 string NilValue::extractString(bool isOnRight) const
 {
-    return "";
+    return isOnRight ? "" : "()";
 }
 
 string SymbolValue::toString() const
@@ -178,7 +204,7 @@ bool PairValue::isList()
 
 string PairValue::extractString(bool isOnRight) const
 {
-    return (isOnRight ? " " : "") + pLeftValue->extractString(false) + pRightValue->extractString(true);
+    return (isOnRight ? " " : "") + pLeftValue->toString() + pRightValue->extractString(true);
 }
 
 bool Value::isType(int typeID) const

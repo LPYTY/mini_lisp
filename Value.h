@@ -94,6 +94,7 @@ class StringValue
     :public Value
 {
     string szValue;
+    static string escChars;
 public:
     StringValue(const string& s)
         :szValue{ s } {}

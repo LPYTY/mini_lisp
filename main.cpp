@@ -7,8 +7,26 @@
 #include "./eval_env.h"
 #include "./interpreter.h"
 
+#ifdef __DO_RJSJ_TEST
+#include "rjsj_test.hpp"
+
+struct TestCtx {
+    EnvPtr env = EvalEnv::createGlobal();
+    std::string eval(std::string input) {
+        auto tokens = Tokenizer::tokenize(input);
+        Parser parser(std::move(tokens));
+        auto value = parser.parse();
+        auto result = env->eval(std::move(value));
+        return result->toString();
+    }
+};
+#endif //__DO_RJSJ_TEST
+
 int main(int argc, const char ** argv) 
 {
+#ifdef __DO_RJSJ_TEST
+    RJSJ_TEST(TestCtx, Lv2, Lv3, Lv4, Lv5, Lv5Extra, Lv6, Lv7, Lv7Lib);
+#endif //__DO_RJSJ_TEST
     std::shared_ptr<Interpreter> interpreter = Interpreter::createInterpreter(argc, argv);
     int exitCode = 0;
     try
