@@ -6,8 +6,7 @@
 
 #include "./token.h"
 
-class Tokenizer 
-{
+class Tokenizer {
 private:
     TokenPtr nextToken(int& pos);
     std::deque<TokenPtr> tokenize();
