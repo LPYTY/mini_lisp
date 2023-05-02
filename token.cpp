@@ -23,6 +23,11 @@ TokenPtr Token::dot() {
     return TokenPtr(new Token(TokenType::DOT));
 }
 
+TokenPtr Token::unquote_splicing()
+{
+    return TokenPtr(new Token(TokenType::UNQUOTE_SPLICING));
+}
+
 std::string Token::toString() const {
     switch (type) {
         case TokenType::LEFT_PAREN: return "(LEFT_PAREN)"; break;

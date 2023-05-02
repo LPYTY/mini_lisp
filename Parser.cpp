@@ -42,6 +42,7 @@ ValuePtr Parser::parse()
     case TokenType::QUOTE:
     case TokenType::QUASIQUOTE:
     case TokenType::UNQUOTE:
+    case TokenType::UNQUOTE_SPLICING:
     {
         return make_shared<PairValue>(substituteSymbol(token),make_shared<PairValue>(parse(),make_shared<NilValue>()));
     }
@@ -111,6 +112,11 @@ ValuePtr Parser::substituteSymbol(TokenPtr& token) const
     case TokenType::UNQUOTE:
     {
         name = "unquote";
+        break;
+    }
+    case TokenType::UNQUOTE_SPLICING:
+    {
+        name = "unquote-splicing";
         break;
     }
     default:

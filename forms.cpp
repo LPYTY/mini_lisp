@@ -9,6 +9,67 @@ namespace SpecialForm
         {
             return make_pair(name, make_shared <SpecialFormValue> (func, minArgs, maxArgs, paramType));
         }
+
+        bool defineVariable(const ValueList& params, EvalEnv& defineEnv, EvalEnv& evalEnv)
+        {
+            if (auto name = params[0]->asSymbol())
+            {
+                SpecialFormValue::assertParamCnt(params, 2, 2);
+                defineEnv.defineVariable(*name, evalEnv.eval(params[1]));
+                return true;
+            }
+        }
+
+        void defineVariableAndAssert(const ValueList& params, EvalEnv& defineEnv, EvalEnv& evalEnv)
+        {
+            if (!defineVariable(params, defineEnv, evalEnv))
+                throw LispError("Malformed define form: " + params[0]->toString());
+        }
+
+        ValuePtr basicLet(const ValueList& params, EvalEnv& env, function<void(const ValueList&, EvalEnv&, EvalEnv&)> defineOrder)
+        {
+            auto subEnv = EvalEnv::createChild(env.shared_from_this());
+            auto& currentEnv = *subEnv;
+            auto definitions = params[0]->toVector();
+            defineOrder(definitions, currentEnv, env);
+            ValuePtr result = make_shared<NilValue>();
+            for (size_t i = 1; i < params.size(); i++)
+            {
+                result = currentEnv.eval(params[i]);
+            }
+            return result;
+        }
+
+        void letDefineOrder(const ValueList& definitions, EvalEnv& defineEnv, EvalEnv& evalEnv)
+        {
+            for (auto& definition : definitions)
+            {
+                auto defineList = definition->toVector();
+                defineVariableAndAssert(defineList, defineEnv, evalEnv);
+            }
+        }
+
+        void letxDefineOrder(const ValueList& definitions, EvalEnv& defineEnv, EvalEnv& evalEnv)
+        {
+            for (auto& definition : definitions)
+            {
+                auto defineList = definition->toVector();
+                defineVariableAndAssert(defineList, defineEnv, defineEnv);
+            }
+        }
+
+        void letrecDefineOrder(const ValueList& definitions, EvalEnv& defineEnv, EvalEnv& evalEnv)
+        {
+            for (auto& definition : definitions)
+            {
+                auto defineList = definition->toVector();
+                SpecialFormValue::assertParamCnt(defineList, 2, 2);
+                defineList[1] = ListValue::fromVector({ make_shared<SymbolValue>("quote"),make_shared<NilValue>() });
+                defineVariableAndAssert(defineList, defineEnv, defineEnv);
+            }
+            letxDefineOrder(definitions, defineEnv, evalEnv);
+        }
+
     }
 
     namespace Primary
@@ -30,12 +91,8 @@ namespace SpecialForm
 
         ValuePtr defineForm(const ValueList& params, EvalEnv& env)
         {
-            if (auto name = params[0]->asSymbol())
-            {
-                SpecialFormValue::assertParamCnt(params, 2, 2);
-                env.defineVariable(*name, env.eval(params[1]));
+            if (defineVariable(params, env, env))
                 return make_shared<NilValue>();
-            }
             else if (params[0]->isType(ValueType::ListType) && static_pointer_cast<ListValue>(params[0])->isList())
             {
                 auto procSymbol = static_pointer_cast<PairValue>(params[0])->left();
@@ -64,7 +121,18 @@ namespace SpecialForm
                 return env.eval(params[1]);
             else
                 return params.size() >= 3 ? env.eval(params[2]) : make_shared<NilValue>();
-        }        
+        }
+
+        ValuePtr setForm(const ValueList& params, EvalEnv& env)
+        {
+            auto name = *params[0]->asSymbol();
+            auto result = env.findVariable(name);
+            if (result.first)
+                result.first->defineVariable(name, env.eval(params[1]));
+            else
+                throw LispError("Variable " + name + " not defined.");
+            return make_shared<NilValue>();
+        }
     }
 
     namespace Derived
@@ -98,7 +166,7 @@ namespace SpecialForm
         {
             ValuePtr result = make_shared<NilValue>();
             auto condEnv = EvalEnv::createChild(env.shared_from_this(), { "else" }, { make_shared<BooleanValue>(true) });
-            auto currentEnv = *condEnv;
+            auto& currentEnv = *condEnv;
 
             for (size_t i = 0; i < params.size(); i++)
             {
@@ -134,30 +202,84 @@ namespace SpecialForm
             return result;
         }
 
-        ValuePtr letForm(const ValueList& params, EvalEnv& env)
+        ValuePtr doForm(const ValueList& params, EvalEnv& env)
         {
+            auto initializers = params[0]->toVector();
+            auto testList = params[1]->toVector();
+            SpecialFormValue::assertParamCnt(testList, 1);
             auto subEnv = EvalEnv::createChild(env.shared_from_this());
             auto& currentEnv = *subEnv;
-            auto definitions = params[0]->toVector();
-            for (auto& definition : definitions)
+            vector<ValueList> initializerLists;
+            for (auto& initializer : initializers)
             {
-                auto defineList = definition->toVector();
-                defineForm(defineList, currentEnv);
+                auto initializerList = initializer->toVector();
+                SpecialFormValue::assertParamCnt(initializerList, 2, 3);
+                initializerLists.push_back(initializerList);
+                ValueList defineParams = { initializerList[0], initializerList[1] };
+                defineVariableAndAssert(defineParams, currentEnv, currentEnv);
+            }
+            auto& test = testList[0];
+            while (!*currentEnv.eval(test))
+            {
+                for (size_t i = 2; i < params.size(); i++)
+                    currentEnv.eval(params[i]);
+                for (auto& initializerList : initializerLists)
+                {
+                    if (initializerList.size() == 3)
+                    {
+                        ValueList defineParams = { initializerList[0], initializerList[2] };
+                        defineVariable(defineParams, currentEnv, currentEnv);
+                    }
+                }
             }
             ValuePtr result = make_shared<NilValue>();
-            for (size_t i = 1; i < params.size(); i++)
-            {
-                result = currentEnv.eval(params[i]);
-            }
+            for (size_t i = 1; i < testList.size(); i++)
+                result = currentEnv.eval(testList[i]);
             return result;
+        }
+
+        ValuePtr letForm(const ValueList& params, EvalEnv& env)
+        {
+            if (auto name = params[0]->asSymbol())
+            {
+                SpecialFormValue::assertParamCnt(params, 3);
+                auto subEnv = EvalEnv::createChild(env.shared_from_this());
+                auto& currentEnv = *subEnv;
+                auto defineLists = params[1]->toVector();
+                ValueList variables, bindings, lambdaParams;
+                for (auto& definePtr : defineLists)
+                {
+                    auto defineList = definePtr->toVector();
+                    SpecialFormValue::assertParamCnt(defineList, 2);
+                    variables.push_back(defineList[0]);
+                    bindings.push_back(defineList[1]);
+                }
+                lambdaParams.push_back(ListValue::fromVector(variables));
+                for (size_t i = 2; i < params.size(); i++)
+                    lambdaParams.push_back(params[i]);
+                auto lambda = lambdaForm(lambdaParams, currentEnv);
+                currentEnv.defineVariable(*name, lambda);
+                return currentEnv.applyProc(lambda, bindings);
+            }
+            return basicLet(params, env, letDefineOrder);
+        }
+
+        ValuePtr letxForm(const ValueList& params, EvalEnv& env)
+        {
+            return basicLet(params, env, letxDefineOrder);
+        }
+
+        ValuePtr letrecForm(const ValueList& params, EvalEnv& env)
+        {
+            return basicLet(params, env, letrecDefineOrder);
         }
 
         ValuePtr quasiquoteForm(const ValueList& params, EvalEnv& env)
         {
             auto quasiquoteEnv = EvalEnv::createChild(
-                env.shared_from_this(), 
-                { "unquote" }, 
-                { make_shared<SpecialFormValue>(unquoteForm, 1, 1) }
+                env.shared_from_this()//, 
+                //{ "unquote" }, 
+                //{ make_shared<SpecialFormValue>(unquoteForm, 1, 1) }
             );
             auto& currentEnv = *quasiquoteEnv;
             if (!params[0]->isType(ValueType::PairType))
@@ -165,20 +287,28 @@ namespace SpecialForm
             auto valueList = static_pointer_cast<PairValue>(params[0]);
             if (valueList->left()->asSymbol() == "unquote")
             {
-                return currentEnv.eval(params[0]);
+                //currentEnv.undefVariable("unquote");
+                auto unquotedList = valueList->right()->toVector();
+                SpecialFormValue::assertParamCnt(unquotedList, 1, 1);
+                return env.eval(unquotedList[0]);
+                //currentEnv.defineVariable()
             }
             if (!valueList->isList())
                 return params[0];
             auto values = valueList->toVector();
             ValueList result;
-            std::ranges::transform(
-                values,
-                std::back_inserter(result),
-                [&currentEnv](ValuePtr param)
+            for (auto& value : values)
+            {
+                if (value->isType(ValueType::PairType) && static_pointer_cast<PairValue>(value)->left()->asSymbol() == "unquote-splicing")
                 {
-                    return quasiquoteForm({ param }, currentEnv);
+                    auto splicingExpressionList = value->toVector();
+                    SpecialFormValue::assertParamCnt(splicingExpressionList, 2, 2);
+                    auto splicingList = currentEnv.evalParams(splicingExpressionList[1]);
+                    result.insert(result.end(), splicingList.begin(), splicingList.end());
                 }
-            );
+                else
+                    result.push_back(quasiquoteForm({ value }, currentEnv));
+            }
             return ListValue::fromVector(result);
         }
 
@@ -198,11 +328,15 @@ const unordered_map<string, ProcPtr> allSpecialForms =
     SpecialFormItem("define"s, SpecialForm::Primary::defineForm, 2, ProcValue::UnlimitedCnt, {ValueType::SymbolType, ValueType::AllType}),
     SpecialFormItem("quote"s, SpecialForm::Primary::quoteForm, 1, 1),
     SpecialFormItem("if"s, SpecialForm::Primary::ifForm, 2, 3),
+    SpecialFormItem("set!"s, SpecialForm::Primary::setForm, 2, 2, {ValueType::SymbolType, ValueType::AllType}),
     SpecialFormItem("cond"s, SpecialForm::Derived::condForm, ProcValue::UnlimitedCnt, ProcValue::UnlimitedCnt, {ValueType::ListType, ProcValue::SameToRest}),
-    SpecialFormItem("let"s, SpecialForm::Derived::letForm, 2, ProcValue::UnlimitedCnt, {ValueType::ListType}),
+    SpecialFormItem("let"s, SpecialForm::Derived::letForm, 2),
+    SpecialFormItem("let*"s, SpecialForm::Derived::letxForm, 2),
+    SpecialFormItem("letrec"s, SpecialForm::Derived::letrecForm, 2),
     SpecialFormItem("begin"s, SpecialForm::Derived::beginForm, 1),
     SpecialFormItem("and"s, SpecialForm::Derived::andForm),
     SpecialFormItem("or"s, SpecialForm::Derived::orForm),
+    SpecialFormItem("do"s, SpecialForm::Derived::doForm, 2, ProcValue::UnlimitedCnt, {ValueType::ListType, ValueType::ListType}),
     SpecialFormItem("quasiquote"s, SpecialForm::Derived::quasiquoteForm, 1, 1),
 };
 

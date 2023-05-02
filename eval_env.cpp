@@ -1,11 +1,10 @@
 #include "./eval_env.h"
 
-const unordered_map<string, ProcPtr>& EvalEnv::specialFormTable = allSpecialForms;
-
 EvalEnv::EvalEnv(EnvPtr parent)
+    :pParent{parent}
 {
-    pParent = parent;
     symbolTable.insert(allBuiltins.begin(), allBuiltins.end());
+    specialFormTable.insert(allSpecialForms.begin(), allSpecialForms.end());
 }
 
 EnvPtr EvalEnv::createGlobal()
@@ -23,31 +22,59 @@ EnvPtr EvalEnv::createChild(EnvPtr parent, vector<string> names, ValueList value
     return EnvPtr(pEnv);
 }
 
-ProcPtr EvalEnv::findForm(const string& name)
+pair<EnvPtr, ProcPtr> EvalEnv::findForm(const string& name)
 {
-    try
+    EnvPtr currentEnv = shared_from_this();
+    pair<EnvPtr, ProcPtr> result = { nullptr, nullptr };
+    while (currentEnv)
     {
-        return specialFormTable.at(name);
+        auto iter = currentEnv->specialFormTable.find(name);
+        if (iter != currentEnv->specialFormTable.end())
+        {
+            result.first = currentEnv;
+            result.second = iter->second;
+            break;
+        }
+        currentEnv = currentEnv->pParent;
     }
-    catch (out_of_range& e)
-    {
-            throw LispError("");
-    }
+    return result;
 }
 
-ValuePtr EvalEnv::findValue(const string& name)
+ProcPtr EvalEnv::getForm(const string& name)
 {
-    try
+    auto result = findForm(name);
+    if (result.second)
+        return result.second;
+    else
+        throw LispError("Variable " + name + " not defined.");
+    
+}
+
+pair<EnvPtr, ValuePtr> EvalEnv::findVariable(const string& name)
+{
+    EnvPtr currentEnv = shared_from_this();
+    pair<EnvPtr, ValuePtr> result = { nullptr, nullptr };
+    while (currentEnv)
     {
-        return symbolTable.at(name);
+        auto iter = currentEnv->symbolTable.find(name);
+        if (iter != currentEnv->symbolTable.end())
+        {
+            result.first = currentEnv;
+            result.second = iter->second;
+            break;
+        }
+        currentEnv = currentEnv->pParent;
     }
-    catch (out_of_range& e)
-    {
-        if (pParent)
-            return pParent->findValue(name);
-        else
-            throw LispError("");
-    }
+    return result;
+}
+
+ValuePtr EvalEnv::getVariableValue(const string& name)
+{
+    auto result = findVariable(name);
+    if (result.second)
+        return result.second;
+    else
+        throw LispError("Variable " + name + " not defined.");
 }
 
 void EvalEnv::defineVariable(const string& name, ValuePtr value)
@@ -81,18 +108,11 @@ ValuePtr EvalEnv::eval(ValuePtr expr)
     {
         try
         {
-            return findForm(*name);
+            return getForm(*name);
         }
-        catch(LispError& e)
+        catch (LispError& e)
         {
-            try
-            {
-                return findValue(*name);
-            }
-            catch (LispError& e)
-            {
-                throw LispError("Variable " + *name + " not defined.");
-            }
+            return getVariableValue(*name);
         }
     }
     throw LispError("Unimplemented");

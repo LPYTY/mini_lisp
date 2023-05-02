@@ -12,10 +12,13 @@ enum class TokenType {
     QUOTE,
     QUASIQUOTE,
     UNQUOTE,
+    UNQUOTE_SPLICING,
     DOT,
     BOOLEAN_LITERAL,
     NUMERIC_LITERAL,
     STRING_LITERAL,
+    CHAR_LITERAL,
+    VECTOR_BEGIN,
     IDENTIFIER,
 };
 
@@ -34,6 +37,7 @@ public:
 
     static TokenPtr fromChar(char c);
     static TokenPtr dot();
+    static TokenPtr unquote_splicing();
 
     TokenType getType() const {
         return type;

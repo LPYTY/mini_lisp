@@ -7,8 +7,14 @@
 #include "./eval_env.h"
 #include "./interpreter.h"
 
-#ifdef __DO_RJSJ_TEST
-#include "rjsj_test.hpp"
+#if defined(DEBUG) || defined(_DEBUG)
+#define __ENABLE_TEST
+#endif // defined(DEBUG) || defined(_DEBUG)
+
+//#define __DO_RJSJ_TEST
+
+#ifdef __ENABLE_TEST
+#include "./rjsj_test.hpp"
 
 struct TestCtx {
     EnvPtr env = EvalEnv::createGlobal();
@@ -20,13 +26,14 @@ struct TestCtx {
         return result->toString();
     }
 };
-#endif //__DO_RJSJ_TEST
+#endif //__ENABLE_TEST
 
 int main(int argc, const char ** argv) 
 {
 #ifdef __DO_RJSJ_TEST
     RJSJ_TEST(TestCtx, Lv2, Lv3, Lv4, Lv5, Lv5Extra, Lv6, Lv7, Lv7Lib);
 #endif //__DO_RJSJ_TEST
+
     std::shared_ptr<Interpreter> interpreter = Interpreter::createInterpreter(argc, argv);
     int exitCode = 0;
     try
