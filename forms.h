@@ -19,9 +19,9 @@ namespace SpecialForm
         pair<string, shared_ptr<SpecialFormValue>> SpecialFormItem(
             string name,
             FuncType func,
-            int minArgs = ProcValue::UnlimitedCnt,
-            int maxArgs = ProcValue::UnlimitedCnt,
-            const vector<int>& paramType = ProcValue::UnlimitedType
+            int minArgs = CallableValue::UnlimitedCnt,
+            int maxArgs = CallableValue::UnlimitedCnt,
+            const vector<int>& paramType = CallableValue::UnlimitedType
         );
         bool defineVariable(const ValueList& params, EvalEnv& defineEnv, EvalEnv& evalEnv);
         void defineVariableAndAssert(const ValueList& params, EvalEnv& defineEnv, EvalEnv& evalEnv);
@@ -55,10 +55,11 @@ namespace SpecialForm
         ValuePtr orForm(const ValueList& params, EvalEnv& env);
         ValuePtr quasiquoteForm(const ValueList& params, EvalEnv& env);
         ValuePtr unquoteForm(const ValueList& params, EvalEnv& env);
+        ValuePtr delayForm(const ValueList& params, EvalEnv& env);
     }
 }
 
-extern const unordered_map<string, ProcPtr> allSpecialForms;
+extern const unordered_map<string, FormPtr> allSpecialForms;
 
 #endif // !FORMS_H
 

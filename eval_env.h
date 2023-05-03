@@ -20,7 +20,7 @@ class EvalEnv
     :public enable_shared_from_this<EvalEnv>
 {
     EnvPtr pParent;
-    unordered_map<string, ProcPtr> specialFormTable;
+    unordered_map<string, FormPtr> specialFormTable;
     unordered_map<string, ValuePtr> symbolTable;
     EvalEnv(EnvPtr parent);
 public:
@@ -28,8 +28,8 @@ public:
     EvalEnv& operator=(const EvalEnv&) = delete;
     static EnvPtr createGlobal();
     static EnvPtr createChild(EnvPtr parent, vector<string> names = {}, ValueList values = {});
-    pair<EnvPtr, ProcPtr> findForm(const string& name);
-    ProcPtr getForm(const string& name);
+    pair<EnvPtr, FormPtr> findForm(const string& name);
+    FormPtr getForm(const string& name);
     pair<EnvPtr, ValuePtr> findVariable(const string& name);
     ValuePtr getVariableValue(const string& name);
     void defineVariable(const string& name, ValuePtr value);
@@ -38,7 +38,8 @@ public:
     ValueList evalParams(const ValueList& list);
     ValueList evalParams(ValuePtr list);
     ValuePtr apply(ValuePtr proc, ValuePtr params);
-    ValuePtr applyProc(ValuePtr proc, const ValueList& params);
+    ValuePtr apply(ValuePtr proc, const ValueList& params);
+    ValuePtr callForm(ValuePtr form, ValuePtr params);
 };
 
 

@@ -76,8 +76,12 @@ namespace SpecialForm
     {
         ValuePtr lambdaForm(const ValueList& params, EvalEnv& env)
         {
-            auto paramList = params[0]->toVector();
             vector<string> paramNames;
+            ValueList paramList;
+            if (!params[0]->isType(ValueType::ListType))
+                paramList.push_back(params[0]);
+            else
+                paramList = params[0]->toVector();
             for (auto& param : paramList)
             {
                 if (auto name = param->asSymbol())
@@ -93,7 +97,7 @@ namespace SpecialForm
         {
             if (defineVariable(params, env, env))
                 return make_shared<NilValue>();
-            else if (params[0]->isType(ValueType::ListType) && static_pointer_cast<ListValue>(params[0])->isList())
+            else if (params[0]->isType(ValueType::PairType))
             {
                 auto procSymbol = static_pointer_cast<PairValue>(params[0])->left();
                 auto name = procSymbol->asSymbol();
@@ -259,7 +263,7 @@ namespace SpecialForm
                     lambdaParams.push_back(params[i]);
                 auto lambda = lambdaForm(lambdaParams, currentEnv);
                 currentEnv.defineVariable(*name, lambda);
-                return currentEnv.applyProc(lambda, bindings);
+                return currentEnv.apply(lambda, bindings);
             }
             return basicLet(params, env, letDefineOrder);
         }
@@ -316,27 +320,33 @@ namespace SpecialForm
         {
             return env.eval(params[0]);
         }
+
+        ValuePtr delayForm(const ValueList& params, EvalEnv& env)
+        {
+            return make_shared<PromiseValue>(params[0]);
+        }
     }
 }
 
 using namespace SpecialForm::Helper;
 using namespace std::literals;
 
-const unordered_map<string, ProcPtr> allSpecialForms =
+const unordered_map<string, FormPtr> allSpecialForms =
 {
-    SpecialFormItem("lambda"s, SpecialForm::Primary::lambdaForm, 2, ProcValue::UnlimitedCnt, {ValueType::ListType}),
-    SpecialFormItem("define"s, SpecialForm::Primary::defineForm, 2, ProcValue::UnlimitedCnt, {ValueType::SymbolType, ValueType::AllType}),
+    SpecialFormItem("lambda"s, SpecialForm::Primary::lambdaForm, 2, CallableValue::UnlimitedCnt, {ValueType::ListType}),
+    SpecialFormItem("define"s, SpecialForm::Primary::defineForm, 2, CallableValue::UnlimitedCnt, {ValueType::SymbolType, ValueType::AllType}),
     SpecialFormItem("quote"s, SpecialForm::Primary::quoteForm, 1, 1),
     SpecialFormItem("if"s, SpecialForm::Primary::ifForm, 2, 3),
     SpecialFormItem("set!"s, SpecialForm::Primary::setForm, 2, 2, {ValueType::SymbolType, ValueType::AllType}),
-    SpecialFormItem("cond"s, SpecialForm::Derived::condForm, ProcValue::UnlimitedCnt, ProcValue::UnlimitedCnt, {ValueType::ListType, ProcValue::SameToRest}),
+    SpecialFormItem("cond"s, SpecialForm::Derived::condForm, CallableValue::UnlimitedCnt, CallableValue::UnlimitedCnt, {ValueType::ListType, CallableValue::SameToRest}),
     SpecialFormItem("let"s, SpecialForm::Derived::letForm, 2),
     SpecialFormItem("let*"s, SpecialForm::Derived::letxForm, 2),
     SpecialFormItem("letrec"s, SpecialForm::Derived::letrecForm, 2),
     SpecialFormItem("begin"s, SpecialForm::Derived::beginForm, 1),
     SpecialFormItem("and"s, SpecialForm::Derived::andForm),
     SpecialFormItem("or"s, SpecialForm::Derived::orForm),
-    SpecialFormItem("do"s, SpecialForm::Derived::doForm, 2, ProcValue::UnlimitedCnt, {ValueType::ListType, ValueType::ListType}),
+    SpecialFormItem("do"s, SpecialForm::Derived::doForm, 2, CallableValue::UnlimitedCnt, {ValueType::ListType, ValueType::ListType}),
     SpecialFormItem("quasiquote"s, SpecialForm::Derived::quasiquoteForm, 1, 1),
+    SpecialFormItem("delay"s, SpecialForm::Derived::delayForm, 1, 1),
 };
 

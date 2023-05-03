@@ -21,21 +21,22 @@ using EnvPtr = shared_ptr<EvalEnv>;
 
 namespace ValueType
 {
-    const int BooleanType        = 0b0000000001;
-    const int NumericType        = 0b0000000010;
-    const int StringType         = 0b0000000100;
-    const int NilType            = 0b0000001000;
-    const int SymbolType         = 0b0000010000;
-    const int PairType           = 0b0000100000;
-    const int BuiltinProcType    = 0b0001000000;
-    const int SpecialFormType    = 0b0010000000;
-    const int LambdaType         = 0b0100000000;
-    const int SelfEvaluatingType = BooleanType | NumericType | StringType | BuiltinProcType | SpecialFormType | LambdaType;
-    const int ListType           = NilType | PairType;
-    const int AtomType           = BooleanType | NumericType | StringType | SymbolType | NilType;
-    const int ProcedureType      = BuiltinProcType | SpecialFormType | LambdaType;
-    const int FunctionType           = BuiltinProcType | LambdaType;
-    const int AllType            = BooleanType | NumericType | StringType | NilType | SymbolType | PairType | BuiltinProcType | SpecialFormType | LambdaType;
+    constexpr int BooleanType        = 0b0000000000000001;
+    constexpr int NumericType        = 0b0000000000000010;
+    constexpr int StringType         = 0b0000000000000100;
+    constexpr int NilType            = 0b0000000000001000;
+    constexpr int SymbolType         = 0b0000000000010000;
+    constexpr int PairType           = 0b0000000000100000;
+    constexpr int BuiltinProcType    = 0b0000000001000000;
+    constexpr int SpecialFormType    = 0b0000000010000000;
+    constexpr int LambdaType         = 0b0000000100000000;
+    constexpr int PromiseType        = 0b0000001000000000;
+    constexpr int SelfEvaluatingType = BooleanType | NumericType | StringType | BuiltinProcType | SpecialFormType | LambdaType | PromiseType;
+    constexpr int ListType           = NilType | PairType;
+    constexpr int AtomType           = BooleanType | NumericType | StringType | SymbolType | NilType;
+    constexpr int CallableType       = BuiltinProcType | SpecialFormType | LambdaType;
+    constexpr int ProcedureType      = BuiltinProcType | LambdaType;
+    constexpr int AllType            = BooleanType | NumericType | StringType | NilType | SymbolType | PairType | BuiltinProcType | SpecialFormType | LambdaType | PromiseType;
 
     string typeName(int typeID);
 };
@@ -168,7 +169,7 @@ shared_ptr<ListValue> createListFromIter(Iter begin, Iter end)
 using FuncType = std::function<ValuePtr(const ValueList&, EvalEnv&)>;
 using FuncPtr = FuncType*;
 
-class ProcValue
+class CallableValue
     :public Value
 {
 protected:
@@ -180,30 +181,25 @@ public:
     const static int UnlimitedCnt = -1;
     const static int SameToRest = -1;
     const static vector<int> UnlimitedType;
-    ProcValue(FuncType procedure, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt, vector<int> type = UnlimitedType)
+    CallableValue(FuncType procedure, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt, vector<int> type = UnlimitedType)
         :proc(procedure), minParamCnt(minArgs), maxParamCnt(maxArgs), paramType(type) {}
     virtual ValuePtr call(const ValueList& args, EvalEnv& env);
-    string toString() const override;
     static void assertParamCnt(const ValueList& params, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt);
 protected:
     virtual void checkValidParamCnt(const ValueList& params);
     virtual void checkValidParamType(const ValueList& params);
 };
 
-using ProcPtr = shared_ptr<ProcValue>;
+using CallablePtr = shared_ptr<CallableValue>;
 
-class BuiltinProcValue
-    :public ProcValue
+class ProcValue
+    :public CallableValue
 {
 public:
-    using ProcValue::ProcValue;
-    int getTypeID() const override;
-    static void assertParamCnt(const ValueList& params, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt);
-protected:
-    virtual void checkValidParamCnt(const ValueList& params) override;
+    using CallableValue::CallableValue;
+    string toString() const override;
 };
-
-class SpecialFormValue
+class BuiltinProcValue
     :public ProcValue
 {
 public:
@@ -229,6 +225,33 @@ public:
 protected:
     virtual void checkValidParamCnt(const ValueList& params) override;
     EnvPtr prepareEvalEnv(const ValueList& params);
+};
+
+class SpecialFormValue
+    :public CallableValue
+{
+public:
+    using CallableValue::CallableValue;
+    int getTypeID() const override;
+    string toString() const override;
+    static void assertParamCnt(const ValueList& params, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt);
+protected:
+    virtual void checkValidParamCnt(const ValueList& params) override;
+};
+
+using FormPtr = shared_ptr<SpecialFormValue>;
+
+class PromiseValue
+    :public Value
+{
+    ValuePtr value;
+    bool isEvaluated;
+public:
+    PromiseValue(ValuePtr value)
+        :value{ value }, isEvaluated{ false } {}
+    int getTypeID() const override;
+    string toString() const override;
+    ValuePtr force(EvalEnv& env);
 };
 
 #endif

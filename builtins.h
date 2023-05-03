@@ -25,16 +25,16 @@ namespace Builtin
         pair<string, shared_ptr<BuiltinProcValue>> BuiltinItem(
             string name,
             FuncType func,
-            int minArgs = ProcValue::UnlimitedCnt,
-            int maxArgs = ProcValue::UnlimitedCnt,
-            const vector<int>& paramType = ProcValue::UnlimitedType
+            int minArgs = CallableValue::UnlimitedCnt,
+            int maxArgs = CallableValue::UnlimitedCnt,
+            const vector<int>& paramType = CallableValue::UnlimitedType
         );
     }
     using namespace Builtin::Helper;
 
     namespace Core
     {
-        ValuePtr apply(const ValueList& params, EvalEnv& e);
+        ValuePtr apply(const ValueList& params, EvalEnv& env);
         ValuePtr print(const ValueList& params, EvalEnv& e);
         ValuePtr display(const ValueList& params, EvalEnv& e);
         ValuePtr displayln(const ValueList& params, EvalEnv& e);
@@ -94,8 +94,13 @@ namespace Builtin
         ValuePtr isOdd(const ValueList& params, EvalEnv& e);
         ValuePtr isZero(const ValueList& params, EvalEnv& e);
     }
+
+    namespace Control
+    {
+        ValuePtr force(const ValueList& params, EvalEnv& env);
+    }
 }
 
-extern unordered_map<string, ProcPtr> allBuiltins;
+extern unordered_map<string, CallablePtr> allBuiltins;
 
 #endif // !BUILTINS_H

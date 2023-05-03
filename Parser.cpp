@@ -86,6 +86,7 @@ ValuePtr Parser::parseTails()
         {
             throw SyntaxError("Right paren expected");
         }
+        tokens.pop_front();
     }
     else
     {

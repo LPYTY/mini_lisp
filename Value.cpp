@@ -26,8 +26,9 @@ namespace ValueType
         case ListType:
             return "list";
         case ProcedureType:
-        case FunctionType:
             return "procedure";
+        case PromiseType:
+            return "promise";
         default:
             break;
         }
@@ -237,21 +238,16 @@ string Value::extractString(bool isOnRight) const
     return (isOnRight ? " . " : "") + toString();
 }
 
-const vector<int> ProcValue::UnlimitedType{ ValueType::AllType, ProcValue::SameToRest };
+const vector<int> CallableValue::UnlimitedType{ ValueType::AllType, CallableValue::SameToRest };
 
-ValuePtr ProcValue::call(const ValueList& args, EvalEnv& env)
+ValuePtr CallableValue::call(const ValueList& args, EvalEnv& env)
 {
     checkValidParamCnt(args);
     checkValidParamType(args);
     return proc(args, env);
 }
 
-string ProcValue::toString() const
-{
-    return "#procedure";
-}
-
-void ProcValue::assertParamCnt(const ValueList& params, int minArgs, int maxArgs)
+void CallableValue::assertParamCnt(const ValueList& params, int minArgs, int maxArgs)
 {
     if (minArgs != UnlimitedCnt && params.size() < minArgs)
     {
@@ -263,12 +259,12 @@ void ProcValue::assertParamCnt(const ValueList& params, int minArgs, int maxArgs
     }
 }
 
-void ProcValue::checkValidParamCnt(const ValueList& params)
+void CallableValue::checkValidParamCnt(const ValueList& params)
 {
     assertParamCnt(params, minParamCnt, maxParamCnt);
 }
 
-void ProcValue::checkValidParamType(const ValueList& params)
+void CallableValue::checkValidParamType(const ValueList& params)
 {
     if (paramType.size() == 0)
         return;
@@ -313,7 +309,7 @@ void BuiltinProcValue::assertParamCnt(const ValueList& params, int minArgs, int 
 {
     try
     {
-        ProcValue::assertParamCnt(params, minArgs, maxArgs);
+        CallableValue::assertParamCnt(params, minArgs, maxArgs);
     }
     catch (TooFewArgumentsError& e)
     {
@@ -340,11 +336,16 @@ int SpecialFormValue::getTypeID() const
     return ValueType::SpecialFormType;
 }
 
+string SpecialFormValue::toString() const
+{
+    throw LispError("Cannot convert a special form to string.");
+}
+
 void SpecialFormValue::assertParamCnt(const ValueList& params, int minArgs, int maxArgs)
 {
     try
     {
-        ProcValue::assertParamCnt(params, minArgs, maxArgs);
+        CallableValue::assertParamCnt(params, minArgs, maxArgs);
     }
     catch (TooFewArgumentsError& e)
     {
@@ -370,7 +371,7 @@ ValuePtr LambdaValue::standardLambdaProc(const ValueList& values, EvalEnv& env)
 }
 
 LambdaValue::LambdaValue(const vector<string>& paramsDefinition, const ValueList& bodyDefinition, EnvPtr parentEvalEnv)
-    :ProcValue(standardLambdaProc, paramsDefinition.size(), paramsDefinition.size()), paramNames(paramsDefinition), body(bodyDefinition), parentEnv(parentEvalEnv)
+    :ProcValue (standardLambdaProc, paramsDefinition.size(), paramsDefinition.size()), paramNames(paramsDefinition), body(bodyDefinition), parentEnv(parentEvalEnv)
 {
 }
 
@@ -400,4 +401,31 @@ void LambdaValue::checkValidParamCnt(const ValueList& params)
 EnvPtr LambdaValue::prepareEvalEnv(const ValueList& params)
 {
     return EvalEnv::createChild(parentEnv, paramNames, params);
+}
+
+string ProcValue::toString() const
+{
+    return "#procedure";
+}
+
+int PromiseValue::getTypeID() const
+{
+    return ValueType::PromiseType;
+}
+
+string PromiseValue::toString() const
+{
+    return "#promise";
+}
+
+ValuePtr PromiseValue::force(EvalEnv& env)
+{
+    if (isEvaluated)
+        return value;
+    else
+    {
+        value = env.eval(value);
+        isEvaluated = true;
+    }
+    return value;
 }

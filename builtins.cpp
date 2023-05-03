@@ -16,21 +16,19 @@ namespace Builtin
 
     namespace Core
     {
-        ValuePtr apply(const ValueList& params, EvalEnv& e)
+        ValuePtr apply(const ValueList& params, EvalEnv& env)
         {
-            if (params[0]->isType(ValueType::SpecialFormType))
-                throw LispError("Unbound variable " + params[0]->toString());
-            return e.apply(params[0], params[1]);
+            return env.apply(params[0], params[1]);
         }
 
-        ValuePtr print(const ValueList& params, EvalEnv& e)
+        ValuePtr print(const ValueList& params, EvalEnv& env)
         {
             for (auto& p : params)
                 cout << p->toString() << endl;
             return make_shared<NilValue>();
         }
 
-        ValuePtr display(const ValueList& params, EvalEnv& e)
+        ValuePtr display(const ValueList& params, EvalEnv& env)
         {
             for (auto& p : params)
             {
@@ -39,22 +37,22 @@ namespace Builtin
             return make_shared<NilValue>();
         }
 
-        ValuePtr displayln(const ValueList& params, EvalEnv& e)
+        ValuePtr displayln(const ValueList& params, EvalEnv& env)
         {
-            return display(params, e), newline(params, e);
+            return display(params, env), newline(params, env);
         }
 
-        ValuePtr error(const ValueList& params, EvalEnv& e)
+        ValuePtr error(const ValueList& params, EvalEnv& env)
         {
             throw LispError(params[0]->toString());
         }
 
-        ValuePtr eval(const ValueList& params, EvalEnv& e)
+        ValuePtr eval(const ValueList& params, EvalEnv& env)
         {
-            return e.eval(params[0]);
+            return env.eval(params[0]);
         }
 
-        ValuePtr exit(const ValueList& params, EvalEnv& e)
+        ValuePtr exit(const ValueList& params, EvalEnv& env)
         {
             int exitCode = 0;
             if (params.size() != 0)
@@ -66,7 +64,7 @@ namespace Builtin
             throw ExitEvent(exitCode);
         }
 
-        ValuePtr newline(const ValueList& params, EvalEnv& e)
+        ValuePtr newline(const ValueList& params, EvalEnv& env)
         {
             cout << endl;
             return make_shared<NilValue>();
@@ -75,12 +73,12 @@ namespace Builtin
 
     namespace TypeCheck
     {
-        ValuePtr isInteger(const ValueList& params, EvalEnv& e)
+        ValuePtr isInteger(const ValueList& params, EvalEnv& env)
         {
             return make_shared<BooleanValue>(params[0]->isType(ValueType::NumericType) && static_pointer_cast<NumericValue>(params[0])->isInteger());
         }
 
-        ValuePtr isList(const ValueList& params, EvalEnv& e)
+        ValuePtr isList(const ValueList& params, EvalEnv& env)
         {
             return make_shared<BooleanValue>(params[0]->isType(ValueType::ListType) && static_pointer_cast<ListValue>(params[0])->isList());
         }
@@ -88,7 +86,7 @@ namespace Builtin
 
     namespace ListOperator
     {
-        ValuePtr append(const ValueList& params, EvalEnv& e)
+        ValuePtr append(const ValueList& params, EvalEnv& env)
         {
             if (params.size() == 0)
                 return make_shared<NilValue>();
@@ -103,82 +101,85 @@ namespace Builtin
             return ListValue::fromVector(resultList);
         }
 
-        ValuePtr car(const ValueList& params, EvalEnv& e)
+        ValuePtr car(const ValueList& params, EvalEnv& env)
         {
             if (!params[0]->isType(ValueType::PairType))
                 throw LispError("Argument is not pair.");
             return static_pointer_cast<PairValue>(params[0])->left();
         }
 
-        ValuePtr cdr(const ValueList& params, EvalEnv& e)
+        ValuePtr cdr(const ValueList& params, EvalEnv& env)
         {
             if (!params[0]->isType(ValueType::PairType))
                 throw LispError("Argument is not pair.");
             return static_pointer_cast<PairValue>(params[0])->right();
         }
 
-        ValuePtr cons(const ValueList& params, EvalEnv& e)
+        ValuePtr cons(const ValueList& params, EvalEnv& env)
         {
             return make_shared<PairValue>(params[0], params[1]);
         }
 
-        ValuePtr length(const ValueList& params, EvalEnv& e)
+        ValuePtr length(const ValueList& params, EvalEnv& env)
         {
             if (!params[0]->isType(ValueType::ListType))
                 throw LispError("Malformed list: expected pair of nil, got " + params[0]->toString());
             return make_shared<NumericValue>(params[0]->toVector().size());
         }
 
-        ValuePtr list(const ValueList& params, EvalEnv& e)
+        ValuePtr list(const ValueList& params, EvalEnv& env)
         {
             return ListValue::fromVector(params);
         }
 
-        ValuePtr map(const ValueList& params, EvalEnv& e)
+        ValuePtr map(const ValueList& params, EvalEnv& env)
         {
-            auto proc = static_pointer_cast<ProcValue>(params[0]);
+            auto proc = static_pointer_cast<CallableValue>(params[0]);
             ValueList resultList;
             vector<ValueList> paramLists;
-            for (size_t i = 1; i < params.size(); i++)
-                paramLists.push_back(params[i]->toVector());
+            paramLists.push_back(params[1]->toVector());
+            size_t paramListSize = paramLists[0].size();
+            for (size_t i = 2; i < params.size(); i++)
+            {
+                auto nextList = params[i]->toVector();
+                if (nextList.size() != paramListSize)
+                    throw LispError("Param lists mismatch.");
+                paramLists.push_back(nextList);
+            }
             size_t maxSize = 0;
             for (auto& list : paramLists)
             {
                 if (list.size() > maxSize)
                     maxSize = list.size();
             }
-            for (size_t i = 0; i < maxSize; i++)
+            for (size_t i = 0; i < paramListSize; i++)
             {
                 ValueList args;
-                std::ranges::for_each(
-                    paramLists,
-                    [&args, i](auto& list)
-                    {
-                        if (i < list.size())
-                            args.push_back(list[i]);
-                    }
-                );
-                resultList.push_back(e.applyProc(proc, args));
+                for (auto& paramList : paramLists)
+                {
+                    args.push_back(paramList[i]);
+                }
+                resultList.push_back(env.apply(proc, args));
             }
             return ListValue::fromVector(resultList);
         }
 
-        ValuePtr filter(const ValueList& params, EvalEnv& e)
+        ValuePtr filter(const ValueList& params, EvalEnv& env)
         {
             auto proc = static_pointer_cast<ProcValue>(params[0]);
             auto paramList = params[1]->toVector();
             ValueList resultList;
             for (auto& value : paramList)
             {
-                if (*e.applyProc(proc, { value }))
+                if (*env.apply(proc, ValueList{ value }))
                     resultList.push_back(value);
             }
             return ListValue::fromVector(resultList);
         }
 
-        ValuePtr reduce(const ValueList& params, EvalEnv& e)
+        ValuePtr reduce(const ValueList& params, EvalEnv& env)
         {
-            auto proc = static_pointer_cast<ProcValue>(params[0]);
+            auto proc = static_pointer_cast<CallableValue>(params[0]);
             auto paramList = params[1]->toVector();
             switch (paramList.size())
             {
@@ -189,7 +190,7 @@ namespace Builtin
             default:
             {
                 auto paramPair = static_pointer_cast<PairValue>(params[1]);
-                return e.applyProc(proc, { paramPair->left(), reduce({proc, paramPair->right()},e) });
+                return env.apply(proc, { paramPair->left(), reduce({proc, paramPair->right()},env) });
             }
             }
         }
@@ -198,7 +199,7 @@ namespace Builtin
 
     namespace Math
     {
-        ValuePtr add(const ValueList& params, EvalEnv& e)
+        ValuePtr add(const ValueList& params, EvalEnv& env)
         {
             double result = 0;
             for (const auto& i : params)
@@ -213,7 +214,7 @@ namespace Builtin
             return std::make_shared<NumericValue>(result);
         }
 
-        ValuePtr minus(const ValueList& params, EvalEnv& e)
+        ValuePtr minus(const ValueList& params, EvalEnv& env)
         {
             switch (params.size())
             {
@@ -226,7 +227,7 @@ namespace Builtin
             }
         }
 
-        ValuePtr multiply(const ValueList& params, EvalEnv& e)
+        ValuePtr multiply(const ValueList& params, EvalEnv& env)
         {
             double result = 1;
             for (auto& value : params)
@@ -236,7 +237,7 @@ namespace Builtin
             return make_shared<NumericValue>(result);
         }
 
-        ValuePtr divide(const ValueList& params, EvalEnv& e)
+        ValuePtr divide(const ValueList& params, EvalEnv& env)
         {
             double x = 1, y = 0;
             switch (params.size())
@@ -262,12 +263,12 @@ namespace Builtin
             return make_shared<NumericValue>(x / y);
         }
 
-        ValuePtr abs(const ValueList& params, EvalEnv& e)
+        ValuePtr abs(const ValueList& params, EvalEnv& env)
         {
             return make_shared<NumericValue>(std::abs(*params[0]->asNumber()));
         }
 
-        ValuePtr expt(const ValueList& params, EvalEnv& e)
+        ValuePtr expt(const ValueList& params, EvalEnv& env)
         {
             double x = *params[0]->asNumber(), y = *params[1]->asNumber();
             if (x == 0 && y == 0)
@@ -289,7 +290,7 @@ namespace Builtin
             }
         }
 
-        ValuePtr quotient(const ValueList& params, EvalEnv& e)
+        ValuePtr quotient(const ValueList& params, EvalEnv& env)
         {
             double x = *params[0]->asNumber(), y = *params[1]->asNumber();
             if (y == 0)
@@ -298,7 +299,7 @@ namespace Builtin
             return make_shared<NumericValue>(static_cast<long long>(result));
         }
 
-        ValuePtr remainder(const ValueList& params, EvalEnv& e)
+        ValuePtr remainder(const ValueList& params, EvalEnv& env)
         {
             double x = *params[0]->asNumber(), y = *params[1]->asNumber();
             if (y == 0)
@@ -306,7 +307,7 @@ namespace Builtin
             return make_shared<NumericValue>(x - y * static_cast<long long>(x / y));
         }
 
-        ValuePtr modulo(const ValueList& params, EvalEnv& e)
+        ValuePtr modulo(const ValueList& params, EvalEnv& env)
         {
             double x = *params[0]->asNumber(), y = *params[1]->asNumber();
             double result = x;
@@ -325,14 +326,14 @@ namespace Builtin
 
     namespace Compare
     {
-        ValuePtr eq(const ValueList& params, EvalEnv& e)
+        ValuePtr eq(const ValueList& params, EvalEnv& env)
         {
             if (params[0]->getTypeID() != params[1]->getTypeID())
                 return make_shared<BooleanValue>(false);
             if (params[0]->isType(
                 ValueType::BooleanType |
                 ValueType::NumericType |
-                ValueType::ProcedureType |
+                ValueType::CallableType |
                 ValueType::NilType |
                 ValueType::SymbolType
             ))
@@ -341,65 +342,73 @@ namespace Builtin
                 return make_shared<BooleanValue>(params[0] == params[1]);
         }
 
-        ValuePtr equal(const ValueList& params, EvalEnv& e)
+        ValuePtr equal(const ValueList& params, EvalEnv& env)
         {
             return make_shared<BooleanValue>(params[0]->getTypeID() == params[1]->getTypeID() && params[0]->toString() == params[1]->toString());
         }
 
-        ValuePtr _not(const ValueList& params, EvalEnv& e)
+        ValuePtr _not(const ValueList& params, EvalEnv& env)
         {
             return make_shared<BooleanValue>(!*params[0]);
         }
 
-        ValuePtr less(const ValueList& params, EvalEnv& e)
+        ValuePtr less(const ValueList& params, EvalEnv& env)
         {
             return make_shared<BooleanValue>(*params[0]->asNumber() < *params[1]->asNumber());
         }
 
-        ValuePtr more(const ValueList& params, EvalEnv& e)
+        ValuePtr more(const ValueList& params, EvalEnv& env)
         {
             return make_shared<BooleanValue>(*params[0]->asNumber() > *params[1]->asNumber());
         }
 
-        ValuePtr lessOrEqual(const ValueList& params, EvalEnv& e)
+        ValuePtr lessOrEqual(const ValueList& params, EvalEnv& env)
         {
             return make_shared<BooleanValue>(*params[0]->asNumber() <= *params[1]->asNumber());
         }
 
-        ValuePtr moreOrEqual(const ValueList& params, EvalEnv& e)
+        ValuePtr moreOrEqual(const ValueList& params, EvalEnv& env)
         {
             return make_shared<BooleanValue>(*params[0]->asNumber() >= *params[1]->asNumber());
         }
 
-        ValuePtr isEven(const ValueList& params, EvalEnv& e)
+        ValuePtr isEven(const ValueList& params, EvalEnv& env)
         {
             return make_shared<BooleanValue>(static_pointer_cast<NumericValue>(params[0])->isInteger() && (std::abs(static_cast<long long>(*params[0]->asNumber())) % 2 == 0));
         }
 
-        ValuePtr isOdd(const ValueList& params, EvalEnv& e)
+        ValuePtr isOdd(const ValueList& params, EvalEnv& env)
         {
             return make_shared<BooleanValue>(static_pointer_cast<NumericValue>(params[0])->isInteger() && (std::abs(static_cast<long long>(*params[0]->asNumber())) % 2 == 1));
         }
 
-        ValuePtr isZero(const ValueList& params, EvalEnv& e)
+        ValuePtr isZero(const ValueList& params, EvalEnv& env)
         {
             return make_shared<BooleanValue>(*params[0]->asNumber() == 0);
         }
 
     }
+
+    namespace Control
+    {
+        ValuePtr force(const ValueList& params, EvalEnv& env)
+        {
+            return static_pointer_cast<PromiseValue>(params[0])->force(env);
+        }
+    }
 }
 
 using namespace Builtin::Helper;
 
-unordered_map<string, ProcPtr> allBuiltins =
+unordered_map<string, CallablePtr> allBuiltins =
 {
-    BuiltinItem("apply"s, Builtin::Core::apply, 2, 2, {ValueType::FunctionType, ValueType::ListType}),
+    BuiltinItem("apply"s, Builtin::Core::apply, 2, 2, {ValueType::ProcedureType, ValueType::ListType}),
     BuiltinItem("print"s, Builtin::Core::print),
     BuiltinItem("display"s, Builtin::Core::display),
     BuiltinItem("displayln"s, Builtin::Core::displayln),
     BuiltinItem("error"s, Builtin::Core::error, 1),
     BuiltinItem("eval"s, Builtin::Core::eval, 1, 1),
-    BuiltinItem("exit"s, Builtin::Core::exit, ProcValue::UnlimitedCnt, 1),
+    BuiltinItem("exit"s, Builtin::Core::exit, CallableValue::UnlimitedCnt, 1),
     BuiltinItem("newline"s, Builtin::Core::newline),
 
     BuiltinItem("atom?"s, Builtin::TypeCheck::isType<ValueType::AtomType>, 1, 1),
@@ -419,20 +428,19 @@ unordered_map<string, ProcPtr> allBuiltins =
     BuiltinItem("cons"s, Builtin::ListOperator::cons, 2),
     BuiltinItem("length"s, Builtin::ListOperator::length, 1),
     BuiltinItem("list"s, Builtin::ListOperator::list),
-    BuiltinItem("map"s, Builtin::ListOperator::map, 2, ProcValue::UnlimitedCnt, {ValueType::ProcedureType, ValueType::ListType, ProcValue::SameToRest}),
+    BuiltinItem("map"s, Builtin::ListOperator::map, 2, CallableValue::UnlimitedCnt, {ValueType::ProcedureType, ValueType::ListType, CallableValue::SameToRest}),
     BuiltinItem("filter"s, Builtin::ListOperator::filter, 2, 2, {ValueType::ProcedureType, ValueType::ListType}),
     BuiltinItem("reduce"s, Builtin::ListOperator::reduce, 2, 2,{ValueType::ProcedureType, ValueType::ListType}),
 
-    BuiltinItem("+"s, Builtin::Math::add, ProcValue::UnlimitedCnt, ProcValue::UnlimitedCnt, {ValueType::NumericType, ProcValue::SameToRest}),
+    BuiltinItem("+"s, Builtin::Math::add, CallableValue::UnlimitedCnt, CallableValue::UnlimitedCnt, {ValueType::NumericType, CallableValue::SameToRest}),
     BuiltinItem("-"s, Builtin::Math::minus, 1, 2, {ValueType::NumericType, ValueType::NumericType}),
-    BuiltinItem("*"s, Builtin::Math::multiply, ProcValue::UnlimitedCnt, ProcValue::UnlimitedCnt, {ValueType::NumericType, ProcValue::SameToRest}),
+    BuiltinItem("*"s, Builtin::Math::multiply, CallableValue::UnlimitedCnt, CallableValue::UnlimitedCnt, {ValueType::NumericType, CallableValue::SameToRest}),
     BuiltinItem("/"s, Builtin::Math::divide, 1, 2, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("abs"s, Builtin::Math::abs, 1, 1, {ValueType::NumericType}),
     BuiltinItem("expt"s, Builtin::Math::expt, 2, 2, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("quotient"s, Builtin::Math::quotient, 2, 2, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("remainder"s, Builtin::Math::remainder, 2, 2, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("modulo"s, Builtin::Math::modulo, 2, 2, {ValueType::NumericType, ValueType::NumericType}),
-
 
     BuiltinItem("eq?"s, Builtin::Compare::eq, 2, 2),
     BuiltinItem("equal?"s, Builtin::Compare::equal, 2, 2),
@@ -445,5 +453,6 @@ unordered_map<string, ProcPtr> allBuiltins =
     BuiltinItem("even?"s, Builtin::Compare::isEven, 1, 1, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("odd?"s, Builtin::Compare::isOdd, 1, 1, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("zero?"s, Builtin::Compare::isZero, 1, 1, {ValueType::NumericType, ValueType::NumericType}),
-};
 
+    BuiltinItem("force"s, Builtin::Control::force,1,1,{ValueType::PromiseType}),
+};

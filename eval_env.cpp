@@ -22,10 +22,10 @@ EnvPtr EvalEnv::createChild(EnvPtr parent, vector<string> names, ValueList value
     return EnvPtr(pEnv);
 }
 
-pair<EnvPtr, ProcPtr> EvalEnv::findForm(const string& name)
+pair<EnvPtr, FormPtr> EvalEnv::findForm(const string& name)
 {
     EnvPtr currentEnv = shared_from_this();
-    pair<EnvPtr, ProcPtr> result = { nullptr, nullptr };
+    pair<EnvPtr, FormPtr> result = { nullptr, nullptr };
     while (currentEnv)
     {
         auto iter = currentEnv->specialFormTable.find(name);
@@ -40,7 +40,7 @@ pair<EnvPtr, ProcPtr> EvalEnv::findForm(const string& name)
     return result;
 }
 
-ProcPtr EvalEnv::getForm(const string& name)
+FormPtr EvalEnv::getForm(const string& name)
 {
     auto result = findForm(name);
     if (result.second)
@@ -100,9 +100,12 @@ ValuePtr EvalEnv::eval(ValuePtr expr)
         if (value.size() == 0)
             throw LispError("Evaluating nil is prohibited.");
         ValuePtr proc = eval(value[0]);
-        if (!proc->isType(ValueType::ProcedureType))
+        if (proc->isType(ValueType::ProcedureType))
+            return apply(proc, static_pointer_cast<PairValue>(expr)->right());
+        else if (proc->isType(ValueType::SpecialFormType))
+            return callForm(proc, static_pointer_cast<PairValue>(expr)->right());
+        else
             throw LispError("Not a procedure " + proc->toString());
-        return apply(proc, static_pointer_cast<PairValue>(expr)->right());
     }
     else if (auto name = expr->asSymbol())
     {
@@ -137,18 +140,15 @@ ValueList EvalEnv::evalParams(ValuePtr list)
 
 ValuePtr EvalEnv::apply(ValuePtr proc, ValuePtr params)
 {
-    ValueList args;
-    if (!proc->isType(ValueType::SpecialFormType))
-        args = evalParams(params);
-    else
-    {
-        auto paramList = params->toVector();
-        args.insert(args.end(), paramList.begin(), paramList.end());
-    }
-    return static_pointer_cast<ProcValue>(proc)->call(args, *this);
+    return apply(proc, params->toVector());
 }
 
-ValuePtr EvalEnv::applyProc(ValuePtr proc, const ValueList& params)
+ValuePtr EvalEnv::callForm(ValuePtr form, ValuePtr params)
+{
+    return static_pointer_cast<SpecialFormValue>(form)->call(params->toVector(), *this);
+}
+
+ValuePtr EvalEnv::apply(ValuePtr proc, const ValueList& params)
 {
     return static_pointer_cast<ProcValue>(proc)->call(evalParams(params), *this);
 }
