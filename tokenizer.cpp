@@ -27,7 +27,7 @@ TokenPtr Tokenizer::nextToken(int& pos)
         else if (c == ',' && input[pos + 1] == '@')
         {
             pos += 2;
-            return Token::unquote_splicing();
+            return Token::unquoteSplicing();
         }
         else if (auto token = Token::fromChar(c)) 
         {
@@ -41,7 +41,21 @@ TokenPtr Tokenizer::nextToken(int& pos)
                 pos += 2;
                 return result;
             } 
-            else 
+            else if (input[pos + 1] == '\\')
+            {
+                std::string charExpression;
+                for (pos += 2; pos < input.size() && !std::isspace(input[pos]); pos++)
+                {
+                    charExpression += input[pos];
+                }
+                return CharLiteralToken::fromString(charExpression);
+            }
+            else if (input[pos + 1] == '(')
+            {
+                pos += 2;
+                return Token::vectorBegin();
+            }
+            else
             {
                 throw SyntaxError("Unexpected character after #");
             }

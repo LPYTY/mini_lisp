@@ -5,8 +5,13 @@
 #include <optional>
 #include <ostream>
 #include <string>
+#include <ranges>
+#include <algorithm>
 
-enum class TokenType {
+#include "./error.h"
+
+enum class TokenType 
+{
     LEFT_PAREN,
     RIGHT_PAREN,
     QUOTE,
@@ -25,7 +30,8 @@ enum class TokenType {
 class Token;
 using TokenPtr = std::unique_ptr<Token>;
 
-class Token {
+class Token 
+{
 private:
     TokenType type;
 
@@ -37,15 +43,19 @@ public:
 
     static TokenPtr fromChar(char c);
     static TokenPtr dot();
-    static TokenPtr unquote_splicing();
+    static TokenPtr unquoteSplicing();
+    static TokenPtr vectorBegin();
 
-    TokenType getType() const {
+    TokenType getType() const 
+    {
         return type;
     }
     virtual std::string toString() const;
 };
 
-class BooleanLiteralToken : public Token {
+class BooleanLiteralToken 
+    : public Token 
+{
 private:
     bool value;
 
@@ -54,46 +64,73 @@ public:
 
     static std::unique_ptr<BooleanLiteralToken> fromChar(char c);
 
-    bool getValue() const {
+    bool getValue() const 
+    {
         return value;
     }
     std::string toString() const override;
 };
 
-class NumericLiteralToken : public Token {
+class NumericLiteralToken 
+    : public Token 
+{
 private:
     double value;
 
 public:
     NumericLiteralToken(double value) : Token(TokenType::NUMERIC_LITERAL), value{value} {}
 
-    double getValue() const {
+    double getValue() const 
+    {
         return value;
     }
     std::string toString() const override;
 };
 
-class StringLiteralToken : public Token {
+class StringLiteralToken 
+    : public Token 
+{
 private:
     std::string value;
 
 public:
     StringLiteralToken(const std::string& value) : Token(TokenType::STRING_LITERAL), value{value} {}
 
-    const std::string& getValue() const {
+    const std::string& getValue() const 
+    {
         return value;
     }
     std::string toString() const override;
 };
 
-class IdentifierToken : public Token {
+class CharLiteralToken
+    :public Token
+{
+private:
+    char value;
+public:
+    CharLiteralToken(char value) :Token(TokenType::CHAR_LITERAL), value{ value } {}
+
+    static TokenPtr fromString(const std::string& s);
+
+    char getValue() const
+    {
+        return value;
+    }
+    std::string toString() const override;
+};
+
+class IdentifierToken 
+    : public Token 
+{
 private:
     std::string name;
 
 public:
     IdentifierToken(const std::string& name) : Token(TokenType::IDENTIFIER), name{name} {}
 
-    const std::string& getName() const {
+    const std::string& getName() const 
+    {
         return name;
     }
     std::string toString() const override;

@@ -118,6 +118,10 @@ ValuePtr EvalEnv::eval(ValuePtr expr)
             return getVariableValue(*name);
         }
     }
+    else if (expr->isType(ValueType::VectorType))
+    {
+        throw LispError("Evaluating vector is prohibited.");
+    }
     throw LispError("Unimplemented");
 }
 

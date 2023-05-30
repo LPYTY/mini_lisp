@@ -21,7 +21,8 @@ public:
 private:
     TokenPtr popNextToken();
     TokenPtr& getNextToken();
-    ValuePtr parseTails();
+    ValuePtr parseListTails();
+    ValueList parseVectorTails();
     ValuePtr substituteSymbol(TokenPtr& token) const;
 };
 

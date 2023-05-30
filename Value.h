@@ -31,12 +31,14 @@ namespace ValueType
     constexpr int SpecialFormType    = 0b0000000010000000;
     constexpr int LambdaType         = 0b0000000100000000;
     constexpr int PromiseType        = 0b0000001000000000;
-    constexpr int SelfEvaluatingType = BooleanType | NumericType | StringType | BuiltinProcType | SpecialFormType | LambdaType | PromiseType;
+    constexpr int CharType           = 0b0000010000000000;
+    constexpr int VectorType         = 0b0000100000000000;
+    constexpr int SelfEvaluatingType = BooleanType | NumericType | StringType | BuiltinProcType | SpecialFormType | LambdaType | PromiseType | CharType;
     constexpr int ListType           = NilType | PairType;
-    constexpr int AtomType           = BooleanType | NumericType | StringType | SymbolType | NilType;
+    constexpr int AtomType           = BooleanType | NumericType | StringType | SymbolType | NilType | CharType;
     constexpr int CallableType       = BuiltinProcType | SpecialFormType | LambdaType;
     constexpr int ProcedureType      = BuiltinProcType | LambdaType;
-    constexpr int AllType            = BooleanType | NumericType | StringType | NilType | SymbolType | PairType | BuiltinProcType | SpecialFormType | LambdaType | PromiseType;
+    constexpr int AllType            = BooleanType | NumericType | StringType | NilType | SymbolType | PairType | BuiltinProcType | SpecialFormType | LambdaType | PromiseType | CharType | VectorType;
 
     string typeName(int typeID);
 };
@@ -54,6 +56,7 @@ class Value
     friend class PairValue;
 public:
     virtual string toString() const = 0;
+    virtual string toDisplayString() const;
     virtual int getTypeID() const = 0; 
     virtual bool isType(int typeID) const;
     virtual ValueList toVector();
@@ -91,6 +94,19 @@ public:
     optional<double> asNumber() const override;
 };
 
+class CharValue
+    :public Value
+{
+    char cValue;
+public:
+    CharValue(char value)
+        :cValue{ value } {}
+    string toString() const override;
+    string toDisplayString() const override;
+    int getTypeID() const override;
+    char value() const;
+};
+
 class StringValue
     :public Value
 {
@@ -100,8 +116,11 @@ public:
     StringValue(const string& s)
         :szValue{ s } {}
     string toString() const override;
+    string toDisplayString() const override;
     int getTypeID() const override;
+    string& value();
     const string& value() const;
+    char& at(long long index);
 };
 
 class ListValue
@@ -125,6 +144,21 @@ public:
     bool isList() override;
 protected:
     string extractString(bool isOnRight) const override;
+};
+
+class VectorValue
+    :public Value
+{
+    ValueList vecValue;
+public:
+    VectorValue(const ValueList& value)
+        :vecValue(value) {}
+    VectorValue(ValueList&& value)
+        :vecValue(value) {}
+    string toString() const override;
+    int getTypeID() const override;
+    ValueList& value();
+    ValuePtr& at(long long index);
 };
 
 class SymbolValue
@@ -168,6 +202,22 @@ shared_ptr<ListValue> createListFromIter(Iter begin, Iter end)
 
 using FuncType = std::function<ValuePtr(const ValueList&, EvalEnv&)>;
 using FuncPtr = FuncType*;
+
+class ParamChecker
+{
+    int minCount;
+    int maxCount;
+    vector<int> paramType;
+public:
+
+    const static int UnlimitedCnt = -1;
+    const static int SameToRest = -1;
+    const static vector<int> UnlimitedType;
+
+    ParamChecker(int minCount, int maxCount, const vector<int>& paramType)
+        :minCount{ minCount }, maxCount{ maxCount }, paramType{ paramType } {}
+    bool isValid(const ValueList& params);
+};
 
 class CallableValue
     :public Value

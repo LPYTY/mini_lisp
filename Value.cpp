@@ -29,6 +29,10 @@ namespace ValueType
             return "procedure";
         case PromiseType:
             return "promise";
+        case CharType:
+            return "character";
+        case VectorType:
+            return "vector";
         default:
             break;
         }
@@ -108,14 +112,31 @@ string StringValue::toString() const
     return result;
 }
 
+string StringValue::toDisplayString() const
+{
+    return value();
+}
+
 int StringValue::getTypeID() const
 {
     return ValueType::StringType;
 }
 
+string& StringValue::value()
+{
+    return szValue;
+}
+
 const string& StringValue::value() const
 {
     return szValue;
+}
+
+char& StringValue::at(long long index)
+{
+    if (index < 0 || index >= szValue.size())
+        throw LispError("Index " + to_string(index) + " out of range");
+    return szValue[index];
 }
 
 string NilValue::toString() const
@@ -206,6 +227,11 @@ bool PairValue::isList()
 string PairValue::extractString(bool isOnRight) const
 {
     return (isOnRight ? " " : "") + pLeftValue->toString() + pRightValue->extractString(true);
+}
+
+string Value::toDisplayString() const
+{
+    return toString();
 }
 
 bool Value::isType(int typeID) const
@@ -428,4 +454,71 @@ ValuePtr PromiseValue::force(EvalEnv& env)
         isEvaluated = true;
     }
     return value;
+}
+
+const vector<int> ParamChecker::UnlimitedType = {};
+
+bool ParamChecker::isValid(const ValueList& params)
+{
+    auto size = params.size();
+
+    return false;
+}
+
+string CharValue::toString() const
+{
+    using namespace std::literals;
+    if (cValue == ' ')
+        return "#\\space"s;
+    else if (cValue == '\n')
+        return "#\\newline"s;
+    else
+        return "#\\"s + cValue;
+}
+
+string CharValue::toDisplayString() const
+{
+    return string(1, value());
+}
+
+int CharValue::getTypeID() const
+{
+    return ValueType::CharType;
+}
+
+char CharValue::value() const
+{
+    return cValue;
+}
+
+string VectorValue::toString() const
+{
+    string result = "#(";
+    for (size_t i = 0; i < vecValue.size(); i++)
+    {
+        result += vecValue[i]->toString();
+        if (i != vecValue.size() - 1)
+        {
+            result += ' ';
+        }
+    }
+    result += ')';
+    return result;
+}
+
+int VectorValue::getTypeID() const
+{
+    return ValueType::VectorType;
+}
+
+vector<ValuePtr>& VectorValue::value()
+{
+    return vecValue;
+}
+
+ValuePtr& VectorValue::at(long long index)
+{
+    if (index < 0 || index >= vecValue.size())
+        throw LispError("Index " + to_string(index) + " out of range");
+    return vecValue[index];
 }

@@ -23,7 +23,7 @@ TokenPtr Token::dot() {
     return TokenPtr(new Token(TokenType::DOT));
 }
 
-TokenPtr Token::unquote_splicing()
+TokenPtr Token::unquoteSplicing()
 {
     return TokenPtr(new Token(TokenType::UNQUOTE_SPLICING));
 }
@@ -38,6 +38,11 @@ std::string Token::toString() const {
         case TokenType::DOT: return "(DOT)"; break;
         default: return "(UNKNOWN)";
     }
+}
+
+TokenPtr Token::vectorBegin()
+{
+    return TokenPtr(new Token(TokenType::VECTOR_BEGIN));
 }
 
 std::unique_ptr<BooleanLiteralToken> BooleanLiteralToken::fromChar(char c) {
@@ -70,4 +75,29 @@ std::string IdentifierToken::toString() const {
 
 std::ostream& operator<<(std::ostream& os, const Token& token) {
     return os << token.toString();
+}
+
+TokenPtr CharLiteralToken::fromString(const std::string& s)
+{
+    std::string s_lower;
+    std::ranges::transform(s, std::back_inserter(s_lower), std::tolower);
+    if (s == "" || s_lower == "space")
+        return TokenPtr(new CharLiteralToken(' '));
+    else if (s_lower == "newline")
+        return TokenPtr(new CharLiteralToken('\n'));
+    else if (s.size() >= 2)
+        throw SyntaxError("Invalid character definition:" + s);
+    else
+        return TokenPtr(new CharLiteralToken(s[0]));
+}
+
+std::string CharLiteralToken::toString() const
+{
+    using namespace std::literals;
+    if (value == ' ')
+        return "#\\space"s;
+    else if (value == '\n')
+        return "#\\newline"s;
+    else
+        return "#\\"s + value;
 }

@@ -12,6 +12,28 @@ namespace Builtin
         {
             return make_pair(name, make_shared<BuiltinProcValue>(func, minArgs, maxArgs, paramType));
         }
+
+        double numberConv(ValuePtr value)
+        {
+            return *value->asNumber();
+        }
+
+        string stringConv(ValuePtr value)
+        {
+            return std::dynamic_pointer_cast<StringValue>(value)->value();
+        }
+
+        string stringCiConv(ValuePtr value)
+        {
+            return ci(stringConv(value));
+        }
+
+        string ci(const string& s)
+        {
+            string result;
+            std::ranges::transform(s, std::back_inserter(result), std::tolower);
+            return result;
+        }
     }
 
     namespace Core
@@ -32,7 +54,7 @@ namespace Builtin
         {
             for (auto& p : params)
             {
-                cout << (p->isType(ValueType::StringType) ? std::static_pointer_cast<StringValue>(p)->value() : p->toString()) << endl;
+                cout << p->toDisplayString() << endl;
             }
             return make_shared<NilValue>();
         }
@@ -324,6 +346,130 @@ namespace Builtin
 
     }
 
+    namespace String
+    {
+        ValuePtr makeString(const ValueList& params, EvalEnv& env)
+        {
+            size_t n = *params[0]->asNumber();
+            char filler = ' ';
+            if (params.size() >= 2)
+                filler = std::dynamic_pointer_cast<CharValue>(params[1])->value();
+            return make_shared<StringValue>(string(n, filler));
+        }
+
+        ValuePtr _string(const ValueList& params, EvalEnv& env)
+        {
+            string result;
+            for (auto p : params)
+            {
+                result += std::dynamic_pointer_cast<CharValue>(p)->value();
+            }
+            return make_shared<StringValue>(result);
+        }
+
+        ValuePtr stringLength(const ValueList& params, EvalEnv& env)
+        {
+            return make_shared<NumericValue>(std::dynamic_pointer_cast<StringValue>(params[0])->value().size());
+        }
+
+        ValuePtr stringRef(const ValueList& params, EvalEnv& env)
+        {
+            auto str = std::dynamic_pointer_cast<StringValue>(params[0]);
+            if (!*TypeCheck::isInteger({ params[1] }, env))
+                throw LispError("Index is required to be an integer");
+            long long index = static_cast<long long>(*params[1]->asNumber());
+            return make_shared<CharValue>(str->at(index));
+        }
+
+        ValuePtr stringSet(const ValueList& params, EvalEnv& env)
+        {
+            auto str = std::dynamic_pointer_cast<StringValue>(params[0]);
+            if (!*TypeCheck::isInteger({ params[1] }, env))
+                throw LispError("Index is required to be an integer");
+            long long index = static_cast<long long>(*params[1]->asNumber());
+            char newChar = std::dynamic_pointer_cast<CharValue>(params[2])->value();
+            str->at(index) = newChar;
+            return make_shared<NilValue>();
+        }
+
+        ValuePtr subString(const ValueList& params, EvalEnv& env)
+        {
+            const string& originalString = std::dynamic_pointer_cast<StringValue>(params[0])->value();
+            if (!std::dynamic_pointer_cast<NumericValue>(params[1])->isInteger() || !std::dynamic_pointer_cast<NumericValue>(params[2])->isInteger())
+                throw LispError("Index must be integer");
+            long long start = *params[1]->asNumber();
+            long long end = *params[2]->asNumber();
+            if (start < 0)
+                throw LispError("Start position should not be negative");
+            if (end < start)
+                throw LispError("End position should not be smaller than start position");
+            if (end > originalString.size())
+                throw LispError("Index out of range");
+            return make_shared<StringValue>(originalString.substr(start, end - start));
+        }
+
+        ValuePtr stringAppend(const ValueList& params, EvalEnv& env)
+        {
+            string result;
+            for (auto& param : params)
+            {
+                result += stringConv(param);
+            }
+            return make_shared<StringValue>(result);
+        }
+
+        ValuePtr listToString(const ValueList& params, EvalEnv& env)
+        {
+            string result;
+            ValueList chars = params[0]->toVector();
+            for (auto& character : chars)
+            {
+                if (!character->isType(ValueType::CharType))
+                    throw LispError("A list of characters expected");
+                result += std::dynamic_pointer_cast<CharValue>(character)->value();
+            }
+            return make_shared<StringValue>(result);
+        }
+
+        ValuePtr stringToList(const ValueList& params, EvalEnv& env)
+        {
+            vector<ValuePtr> result;
+            string& str = std::dynamic_pointer_cast<StringValue>(params[0])->value();
+            for (auto& character : str)
+            {
+                result.push_back(make_shared<CharValue>(character));
+            }
+            return ListValue::fromVector(result);
+        }
+
+        ValuePtr stringCopy(const ValueList& params, EvalEnv& env)
+        {
+            return make_shared<StringValue>(std::dynamic_pointer_cast<StringValue>(params[0])->value());
+        }
+
+        ValuePtr stringFill(const ValueList& params, EvalEnv& env)
+        {
+            string& str = std::dynamic_pointer_cast<StringValue>(params[0])->value();
+            char filler = std::dynamic_pointer_cast<CharValue>(params[1])->value();
+            for (auto& character : str)
+            {
+                character = filler;
+            }
+            return make_shared<NilValue>();
+        }
+
+        BuiltinFunc stringEqual = std::bind(compare<string>(), _1, isEqual<string>(), stringConv);
+        BuiltinFunc stringEqualCi = std::bind(compare<string>(), _1, isEqual<string>(), stringCiConv);
+        BuiltinFunc stringGreater = std::bind(compare<string>(), _1, std::greater<string>(), stringConv);
+        BuiltinFunc stringSmaller = std::bind(compare<string>(), _1, std::less<string>(), stringConv);
+        BuiltinFunc stringGreaterOrEqual = std::bind(compare<string>(), _1, std::greater_equal<string>(), stringConv);
+        BuiltinFunc stringSmallerOrEqual = std::bind(compare<string>(), _1, std::less_equal<string>(), stringConv);
+        BuiltinFunc stringGreaterCi = std::bind(compare<string>(), _1, std::greater<string>(), stringCiConv);
+        BuiltinFunc stringSmallerCi = std::bind(compare<string>(), _1, std::less<string>(), stringCiConv);
+        BuiltinFunc stringGreaterOrEqualCi = std::bind(compare<string>(), _1, std::greater_equal<string>(), stringCiConv);
+        BuiltinFunc stringSmallerOrEqualCi = std::bind(compare<string>(), _1, std::less_equal<string>(), stringCiConv);
+    }
+
     namespace Compare
     {
         ValuePtr eq(const ValueList& params, EvalEnv& env)
@@ -352,25 +498,10 @@ namespace Builtin
             return make_shared<BooleanValue>(!*params[0]);
         }
 
-        ValuePtr less(const ValueList& params, EvalEnv& env)
-        {
-            return make_shared<BooleanValue>(*params[0]->asNumber() < *params[1]->asNumber());
-        }
-
-        ValuePtr more(const ValueList& params, EvalEnv& env)
-        {
-            return make_shared<BooleanValue>(*params[0]->asNumber() > *params[1]->asNumber());
-        }
-
-        ValuePtr lessOrEqual(const ValueList& params, EvalEnv& env)
-        {
-            return make_shared<BooleanValue>(*params[0]->asNumber() <= *params[1]->asNumber());
-        }
-
-        ValuePtr moreOrEqual(const ValueList& params, EvalEnv& env)
-        {
-            return make_shared<BooleanValue>(*params[0]->asNumber() >= *params[1]->asNumber());
-        }
+        BuiltinFunc less = std::bind(compare<double>(), _1, std::less<double>(), numberConv);
+        BuiltinFunc more = std::bind(compare<double>(), _1, std::greater<double>(), numberConv);
+        BuiltinFunc lessOrEqual = std::bind(compare<double>(), _1, std::less_equal<double>(), numberConv);
+        BuiltinFunc moreOrEqual = std::bind(compare<double>(), _1, std::greater_equal<double>(), numberConv);
 
         ValuePtr isEven(const ValueList& params, EvalEnv& env)
         {
@@ -453,6 +584,28 @@ unordered_map<string, CallablePtr> allBuiltins =
     BuiltinItem("even?"s, Builtin::Compare::isEven, 1, 1, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("odd?"s, Builtin::Compare::isOdd, 1, 1, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("zero?"s, Builtin::Compare::isZero, 1, 1, {ValueType::NumericType, ValueType::NumericType}),
+
+    BuiltinItem("make-string"s, Builtin::String::makeString, 1,2,{ValueType::NumericType,ValueType::CharType}),
+    BuiltinItem("string"s,Builtin::String::_string,CallableValue::UnlimitedCnt,CallableValue::UnlimitedCnt,{ValueType::CharType,CallableValue::SameToRest}),
+    BuiltinItem("string-length"s,Builtin::String::stringLength,1,1,{ValueType::StringType}),
+    BuiltinItem("string-ref"s,Builtin::String::stringRef,2,2,{ValueType::StringType,ValueType::NumericType}),
+    BuiltinItem("string-set!"s,Builtin::String::stringSet,3,3,{ValueType::StringType,ValueType::NumericType,ValueType::CharType}),
+    BuiltinItem("string=?"s,Builtin::String::stringEqual,2,2,{ValueType::StringType,ValueType::StringType}),
+    BuiltinItem("string-ci=?"s,Builtin::String::stringEqualCi,2,2,{ValueType::StringType,ValueType::StringType}),
+    BuiltinItem("string>?"s,Builtin::String::stringGreater,2,2,{ValueType::StringType,ValueType::StringType}),
+    BuiltinItem("string<?"s,Builtin::String::stringSmaller,2,2,{ValueType::StringType,ValueType::StringType}),
+    BuiltinItem("string>=?"s,Builtin::String::stringGreaterOrEqual,2,2,{ValueType::StringType,ValueType::StringType}),
+    BuiltinItem("string<=?"s,Builtin::String::stringSmallerOrEqual,2,2,{ValueType::StringType,ValueType::StringType}),
+    BuiltinItem("string-ci>?"s,Builtin::String::stringGreaterCi,2,2,{ValueType::StringType,ValueType::StringType}),
+    BuiltinItem("string-ci<?"s,Builtin::String::stringSmallerCi,2,2,{ValueType::StringType,ValueType::StringType}),
+    BuiltinItem("string-ci>=?"s,Builtin::String::stringGreaterOrEqualCi,2,2,{ValueType::StringType,ValueType::StringType}),
+    BuiltinItem("string-ci<=?"s,Builtin::String::stringSmallerOrEqualCi,2,2,{ValueType::StringType,ValueType::StringType}),
+    BuiltinItem("substring"s,Builtin::String::subString,3,3,{ValueType::StringType,ValueType::NumericType,ValueType::NumericType}),
+    BuiltinItem("string-append"s,Builtin::String::stringAppend,2,CallableValue::UnlimitedCnt,{ValueType::StringType,CallableValue::SameToRest}),
+    BuiltinItem("string->list"s,Builtin::String::stringToList,1,1,{ValueType::StringType}),
+    BuiltinItem("list->string"s,Builtin::String::listToString,1,1,{ValueType::ListType}),
+    BuiltinItem("string-copy"s,Builtin::String::stringCopy,1,1,{ValueType::StringType}),
+    BuiltinItem("string-fill!"s,Builtin::String::stringFill,2,2,{ValueType::StringType,ValueType::CharType}),
 
     BuiltinItem("force"s, Builtin::Control::force,1,1,{ValueType::PromiseType}),
 };

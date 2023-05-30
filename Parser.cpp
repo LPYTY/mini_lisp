@@ -14,30 +14,34 @@ ValuePtr Parser::parse()
     {
         auto value = static_cast<NumericLiteralToken&>(*token).getValue();
         return std::make_shared<NumericValue>(value);
-        break;
     }
     case TokenType::BOOLEAN_LITERAL:
     {
         auto value = static_cast<BooleanLiteralToken&>(*token).getValue();
         return std::make_shared<BooleanValue>(value);
-        break;
+    }
+    case TokenType::CHAR_LITERAL:
+    {
+        auto value = static_cast<CharLiteralToken&>(*token).getValue();
+        return std::make_shared<CharValue>(value);
     }
     case TokenType::STRING_LITERAL:
     {
         auto& value = static_cast<StringLiteralToken&>(*token).getValue();
         return std::make_shared<StringValue>(value);
-        break;
     }
     case TokenType::IDENTIFIER:
     {
         auto& value = static_cast<IdentifierToken&>(*token).getName();
         return std::make_shared<SymbolValue>(value);
-        break;
     }
     case TokenType::LEFT_PAREN:
     {
-        return parseTails();
-        break;
+        return parseListTails();
+    }
+    case TokenType::VECTOR_BEGIN:
+    {
+        return make_shared<VectorValue>(std::move(parseVectorTails()));
     }
     case TokenType::QUOTE:
     case TokenType::QUASIQUOTE:
@@ -69,7 +73,7 @@ TokenPtr& Parser::getNextToken()
     return tokens.front();
 }
 
-ValuePtr Parser::parseTails()
+ValuePtr Parser::parseListTails()
 {
     if (getNextToken()->getType() == TokenType::RIGHT_PAREN)
     {
@@ -90,9 +94,20 @@ ValuePtr Parser::parseTails()
     }
     else
     {
-        cdr = parseTails();
+        cdr = parseListTails();
     }
     return make_shared<PairValue>(car, cdr);
+}
+
+ValueList Parser::parseVectorTails()
+{
+    ValueList result;
+    while (getNextToken()->getType() != TokenType::RIGHT_PAREN)
+    {
+        result.push_back(parse());
+    }
+    tokens.pop_front();
+    return result;
 }
 
 ValuePtr Parser::substituteSymbol(TokenPtr& token) const
