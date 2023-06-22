@@ -27,6 +27,13 @@ enum class TokenType
     IDENTIFIER,
 };
 
+struct TokenMetaData
+{
+    std::shared_ptr<std::string> originalString = nullptr;
+    size_t startPos = 0;
+    size_t endPos = 0;
+};
+
 class Token;
 using TokenPtr = std::unique_ptr<Token>;
 
@@ -34,11 +41,13 @@ class Token
 {
 private:
     TokenType type;
+    TokenMetaData metaData;
 
 protected:
     Token(TokenType type) : type{type} {}
 
 public:
+
     virtual ~Token() = default;
 
     static TokenPtr fromChar(char c);
@@ -51,6 +60,8 @@ public:
         return type;
     }
     virtual std::string toString() const;
+
+    size_t metaGetStartPos() const;
 };
 
 class BooleanLiteralToken 

@@ -86,6 +86,7 @@
     <ClCompile Include="interpreter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="parser.cpp" />
+    <ClCompile Include="reader.cpp" />
     <ClCompile Include="token.cpp" />
     <ClCompile Include="tokenizer.cpp" />
     <ClCompile Include="value.cpp" />
@@ -97,6 +98,7 @@
     <ClInclude Include="forms.h" />
     <ClInclude Include="interpreter.h" />
     <ClInclude Include="parser.h" />
+    <ClInclude Include="reader.h" />
     <ClInclude Include="rjsj_test.hpp" />
     <ClInclude Include="token.h" />
     <ClInclude Include="tokenizer.h" />

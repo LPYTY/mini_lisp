@@ -54,7 +54,12 @@ ValuePtr Parser::parse()
         throw SyntaxError("Unimplemented");
         break;
     }
-    return ValuePtr();
+    return nullptr;
+}
+
+bool Parser::isEmpty() const
+{
+    return tokens.empty();
 }
 
 TokenPtr Parser::popNextToken()

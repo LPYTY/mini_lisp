@@ -18,6 +18,7 @@ class Parser
 public:
     Parser(TokenList&& tokenList);
     ValuePtr parse();
+    bool isEmpty() const;
 private:
     TokenPtr popNextToken();
     TokenPtr& getNextToken();

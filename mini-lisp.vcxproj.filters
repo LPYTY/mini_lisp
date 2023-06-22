@@ -45,6 +45,9 @@
     <ClCompile Include="interpreter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="reader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="error.h">
@@ -75,6 +78,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="rjsj_test.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="reader.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

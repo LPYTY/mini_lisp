@@ -40,6 +40,11 @@ std::string Token::toString() const {
     }
 }
 
+size_t Token::metaGetStartPos() const
+{
+    return metaData.startPos;
+}
+
 TokenPtr Token::vectorBegin()
 {
     return TokenPtr(new Token(TokenType::VECTOR_BEGIN));

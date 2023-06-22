@@ -13,6 +13,7 @@
 #include <algorithm>
 
 #include "./value.h"
+#include "./reader.h"
 
 using std::cout, std::vector, std::to_string, std::make_shared, std::unordered_map, std::pair, std::make_pair, std::static_pointer_cast, std::function;
 
@@ -70,6 +71,7 @@ namespace Builtin
         ValuePtr eval(const ValueList& params, EvalEnv& env);
         ValuePtr exit(const ValueList& params, EvalEnv& env);
         ValuePtr newline(const ValueList& params, EvalEnv& env);
+        ValuePtr read(const ValueList& params, EvalEnv& env);
     }
 
     namespace TypeCheck
@@ -107,6 +109,8 @@ namespace Builtin
         ValuePtr quotient(const ValueList& params, EvalEnv& e);
         ValuePtr remainder(const ValueList& params, EvalEnv& e);
         ValuePtr modulo(const ValueList& params, EvalEnv& e);
+        ValuePtr gcd(const ValueList& params, EvalEnv& e);
+        ValuePtr lcm(const ValueList& params, EvalEnv& e);
     }
 
     namespace Compare

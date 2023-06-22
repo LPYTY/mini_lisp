@@ -11,6 +11,7 @@
 #include "./value.h"
 #include "./parser.h"
 #include "./eval_env.h"
+#include "./reader.h"
 
 using std::istream, std::cin, std::cout, std::cerr, std::endl, std::ifstream, std::string, std::streambuf, std::shared_ptr, std::make_shared, std::deque;
 
@@ -23,19 +24,12 @@ enum InterpreterMode
 class Interpreter
 {
     InterpreterMode mode;
-    istream* pSource;
-    ifstream sourceFile;
     EnvPtr globalEvalEnv;
     int exitCode;
-    deque<ValuePtr> values;
+    shared_ptr<Reader> codeReader;
 private:
-    void setMode(InterpreterMode m);
     InterpreterMode getMode() const;
-    void openSource(const string& fileName);
-    istream& inputStream();
-    bool tokenizeAndParseLine();
-    void cleanUpValueList();
-    ValuePtr evalAll();
+    ValueList evalAll();
     Interpreter();
     Interpreter(const string& fileName);
 public:

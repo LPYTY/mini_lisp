@@ -91,6 +91,11 @@ namespace Builtin
             cout << endl;
             return make_shared<NilValue>();
         }
+
+        ValuePtr read(const ValueList& params, EvalEnv& env)
+        {
+            return stdinReader->read();
+        }
     }
 
     namespace TypeCheck
@@ -344,6 +349,36 @@ namespace Builtin
             return make_shared<NumericValue>(result);
         }
 
+        ValuePtr gcd(const ValueList& params, EvalEnv& e)
+        {
+            if (!std::dynamic_pointer_cast<NumericValue>(params[0])->isInteger() && std::dynamic_pointer_cast<NumericValue>(params[1])->isInteger())
+            {
+                throw LispError("gcd only works on two integers");
+            }
+            long long x = std::abs(*params[0]->asNumber()), y = std::abs(*params[1]->asNumber());
+            if (x == 0 || y == 0)
+                return make_shared<NumericValue>(0);
+            else
+            {
+                while (x != 0 && y != 0)
+                    if (x > y)
+                        x = x % y;
+                    else
+                        y = y % x;
+            }
+            return make_shared<NumericValue>(x + y);
+        }
+
+        ValuePtr lcm(const ValueList& params, EvalEnv& e)
+        {
+            if (!std::dynamic_pointer_cast<NumericValue>(params[0])->isInteger() && std::dynamic_pointer_cast<NumericValue>(params[1])->isInteger())
+            {
+                throw LispError("lcm only works on two integers");
+            }
+            long long x = std::abs(*params[0]->asNumber()), y = std::abs(*params[1]->asNumber());
+            return make_shared<NumericValue>(x * y / (*gcd(params, e)->asNumber()));
+        }
+
     }
 
     namespace String
@@ -481,7 +516,8 @@ namespace Builtin
                 ValueType::NumericType |
                 ValueType::CallableType |
                 ValueType::NilType |
-                ValueType::SymbolType
+                ValueType::SymbolType |
+                ValueType::CharType
             ))
                 return make_shared<BooleanValue>(params[0]->toString() == params[1]->toString());
             else
@@ -541,6 +577,7 @@ unordered_map<string, CallablePtr> allBuiltins =
     BuiltinItem("eval"s, Builtin::Core::eval, 1, 1),
     BuiltinItem("exit"s, Builtin::Core::exit, CallableValue::UnlimitedCnt, 1),
     BuiltinItem("newline"s, Builtin::Core::newline),
+    BuiltinItem("read"s, Builtin::Core::read, 0, 0),
 
     BuiltinItem("atom?"s, Builtin::TypeCheck::isType<ValueType::AtomType>, 1, 1),
     BuiltinItem("boolean?"s, Builtin::TypeCheck::isType<ValueType::BooleanType>, 1,1),
@@ -572,6 +609,8 @@ unordered_map<string, CallablePtr> allBuiltins =
     BuiltinItem("quotient"s, Builtin::Math::quotient, 2, 2, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("remainder"s, Builtin::Math::remainder, 2, 2, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("modulo"s, Builtin::Math::modulo, 2, 2, {ValueType::NumericType, ValueType::NumericType}),
+    BuiltinItem("gcd"s,Builtin::Math::gcd,2,2,{ValueType::NumericType,ValueType::NumericType}),
+    BuiltinItem("lcm"s,Builtin::Math::lcm,2,2,{ValueType::NumericType,ValueType::NumericType}),
 
     BuiltinItem("eq?"s, Builtin::Compare::eq, 2, 2),
     BuiltinItem("equal?"s, Builtin::Compare::equal, 2, 2),

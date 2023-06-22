@@ -1,73 +1,33 @@
 #include "interpreter.h"
 
-void Interpreter::setMode(InterpreterMode m)
-{
-    mode = m;
-}
-
 inline InterpreterMode Interpreter::getMode() const
 {
     return mode;
 }
 
-void Interpreter::openSource(const string& fileName)
+ValueList Interpreter::evalAll()
 {
-    sourceFile.open(fileName);
-    if (!sourceFile.is_open())
-        throw InterpreterError("Open file \"" + fileName + "\" failed");
-    pSource = &sourceFile;
-}
-
-istream& Interpreter::inputStream()
-{
-    return *pSource;
-}
-
-bool Interpreter::tokenizeAndParseLine()
-{
-    bool ret = true;
-    string line;
-    getline(inputStream(), line);
-    if (inputStream().eof())
-    {
-        ret = false;
-        if (line.size() == 0)
-        {
-            return false;
-        }
-    }
-    auto tokens = Tokenizer::tokenize(line);
-    Parser parser(std::move(tokens));
-    values.push_back(parser.parse());
-    return ret;
-}
-
-void Interpreter::cleanUpValueList()
-{
-    values = {};
-}
-
-ValuePtr Interpreter::evalAll()
-{
-    ValuePtr result;
+    ValueList result;
+    auto& values = codeReader->getAllValues();
     while (!values.empty())
     {
-        result = globalEvalEnv->eval(values.front());
+        ValuePtr value = values.front();
         values.pop_front();
+        result.push_back(globalEvalEnv->eval(value));
     }
     return result;
 }
 
 Interpreter::Interpreter()
-    :mode{ InterpreterMode::REPLMODE }, pSource{ &cin }, sourceFile{}, exitCode{ 0 }
+    :mode{ InterpreterMode::REPLMODE }, exitCode{ 0 }, codeReader{stdinReader}
 {
     globalEvalEnv = EvalEnv::createGlobal();
 }
 
 Interpreter::Interpreter(const string& fileName)
-    :mode{ InterpreterMode::FILEMODE }, pSource{ nullptr }, sourceFile{}, exitCode{ 0 }
+    :mode{ InterpreterMode::FILEMODE }, exitCode{ 0 }
 {
-    openSource(fileName);
+    codeReader = make_shared<Reader>(fileName);
     globalEvalEnv = EvalEnv::createGlobal();
 }
 
@@ -87,10 +47,15 @@ int Interpreter::run()
         {
             if (mode == InterpreterMode::REPLMODE)
                 cout << ">>> ";
-            bool isEOF = tokenizeAndParseLine();
+            bool isEOF = codeReader->tokenizeAndParseLine();
             if (mode == InterpreterMode::REPLMODE)
-                if (!values.empty())
-                    cout << evalAll()->toString() << endl;
+            {
+                auto values = evalAll();
+                for (auto value : values)
+                {
+                    cout << value->toString() << endl;
+                }
+            }
             if(!isEOF)
                 break;
         }
@@ -104,7 +69,7 @@ int Interpreter::run()
             if (mode == InterpreterMode::REPLMODE)
             {
                 cerr << "SyntaxError: " << e.what() << endl;
-                cleanUpValueList();
+                codeReader->cleanUpValueList();
             }
             else
                 throw;
@@ -114,7 +79,7 @@ int Interpreter::run()
             if (mode == InterpreterMode::REPLMODE)
             {
                 std::cerr << "LispError: " << e.what() << std::endl;
-                cleanUpValueList();
+                codeReader->cleanUpValueList();
             }
             else
                 throw;

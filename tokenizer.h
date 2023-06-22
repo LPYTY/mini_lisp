@@ -12,8 +12,9 @@ private:
     TokenPtr nextToken(int& pos);
     std::deque<TokenPtr> tokenize();
 
-    std::string input;
-    Tokenizer(const std::string& input) : input{input} {}
+    //std::string input;
+    std::shared_ptr<std::string> pInput;
+    Tokenizer(const std::string& input) : pInput{new std::string(input)} {}
 
 public:
     static std::deque<TokenPtr> tokenize(const std::string& input);

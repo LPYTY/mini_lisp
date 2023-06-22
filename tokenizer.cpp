@@ -10,8 +10,11 @@ const std::set<char> TOKEN_END{'(', ')', '\'', '`', ',', '"'};
 
 TokenPtr Tokenizer::nextToken(int& pos) 
 {
+    std::string& input = *pInput;
+    TokenMetaData metaData = { pInput,pos,pos };
     while (pos < input.size()) 
     {
+        metaData.startPos = pos;
         auto c = input[pos];
         if (c == ';') 
         {

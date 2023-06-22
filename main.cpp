@@ -16,9 +16,11 @@
 #ifdef __ENABLE_TEST
 #include "./rjsj_test.hpp"
 
-struct TestCtx {
+struct TestCtx 
+{
     EnvPtr env = EvalEnv::createGlobal();
-    std::string eval(std::string input) {
+    std::string eval(std::string input) 
+    {
         auto tokens = Tokenizer::tokenize(input);
         Parser parser(std::move(tokens));
         auto value = parser.parse();
