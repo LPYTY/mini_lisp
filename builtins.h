@@ -56,6 +56,8 @@ namespace Builtin
         double numberConv(ValuePtr value);
         string stringConv(ValuePtr value);
         string stringCiConv(ValuePtr value);
+        char charConv(ValuePtr value);
+        char charCiConv(ValuePtr value);
 
         string ci(const string& s);
     }
@@ -95,36 +97,71 @@ namespace Builtin
         ValuePtr list(const ValueList& params, EvalEnv& env);
         ValuePtr map(const ValueList& params, EvalEnv& env);
         ValuePtr filter(const ValueList& params, EvalEnv& env);
-        ValuePtr reduce(const ValueList& params, EvalEnv& e);
+        ValuePtr reduce(const ValueList& params, EvalEnv& env);
     }
 
     namespace Math
     {
-        ValuePtr add(const ValueList& params, EvalEnv& e);
-        ValuePtr minus(const ValueList& params, EvalEnv& e);
-        ValuePtr multiply(const ValueList& params, EvalEnv& e);
-        ValuePtr divide(const ValueList& params, EvalEnv& e);
-        ValuePtr abs(const ValueList& params, EvalEnv& e);
-        ValuePtr expt(const ValueList& params, EvalEnv& e);
-        ValuePtr quotient(const ValueList& params, EvalEnv& e);
-        ValuePtr remainder(const ValueList& params, EvalEnv& e);
-        ValuePtr modulo(const ValueList& params, EvalEnv& e);
-        ValuePtr gcd(const ValueList& params, EvalEnv& e);
-        ValuePtr lcm(const ValueList& params, EvalEnv& e);
+        ValuePtr add(const ValueList& params, EvalEnv& env);
+        ValuePtr minus(const ValueList& params, EvalEnv& env);
+        ValuePtr multiply(const ValueList& params, EvalEnv& env);
+        ValuePtr divide(const ValueList& params, EvalEnv& env);
+        ValuePtr abs(const ValueList& params, EvalEnv& env);
+        ValuePtr expt(const ValueList& params, EvalEnv& env);
+        ValuePtr quotient(const ValueList& params, EvalEnv& env);
+        ValuePtr remainder(const ValueList& params, EvalEnv& env);
+        ValuePtr modulo(const ValueList& params, EvalEnv& env);
+        ValuePtr gcd(const ValueList& params, EvalEnv& env);
+        ValuePtr lcm(const ValueList& params, EvalEnv& env);
     }
 
     namespace Compare
     {
-        ValuePtr eq(const ValueList& params, EvalEnv& e);
-        ValuePtr equal(const ValueList& params, EvalEnv& e);
-        ValuePtr _not(const ValueList& params, EvalEnv& e);
+        ValuePtr eq(const ValueList& params, EvalEnv& env);
+        ValuePtr equal(const ValueList& params, EvalEnv& env);
+        ValuePtr _not(const ValueList& params, EvalEnv& env);
         extern BuiltinFunc less;
         extern BuiltinFunc more;
         extern BuiltinFunc lessOrEqual;
         extern BuiltinFunc moreOrEqual;
-        ValuePtr isEven(const ValueList& params, EvalEnv& e);
-        ValuePtr isOdd(const ValueList& params, EvalEnv& e);
-        ValuePtr isZero(const ValueList& params, EvalEnv& e);
+        ValuePtr isEven(const ValueList& params, EvalEnv& env);
+        ValuePtr isOdd(const ValueList& params, EvalEnv& env);
+        ValuePtr isZero(const ValueList& params, EvalEnv& env);
+    }
+
+    namespace Char
+    {
+        extern BuiltinFunc charEqual;
+        extern BuiltinFunc charEqualCi;
+        extern BuiltinFunc charGreater;
+        extern BuiltinFunc charSmaller;
+        extern BuiltinFunc charGreaterOrEqual;
+        extern BuiltinFunc charSmallerOrEqual;
+        extern BuiltinFunc charGreaterCi;
+        extern BuiltinFunc charSmallerCi;
+        extern BuiltinFunc charGreaterOrEqualCi;
+        extern BuiltinFunc charSmallerOrEqualCi;
+        ValuePtr isCharAlphabetic(const ValueList& params, EvalEnv& env);
+        ValuePtr isCharNumeric(const ValueList& params, EvalEnv& env);
+        ValuePtr isCharWhitespace(const ValueList& params, EvalEnv& env);
+        ValuePtr isCharUpperCase(const ValueList& params, EvalEnv& env);
+        ValuePtr isCharLowerCase(const ValueList& params, EvalEnv& env);
+        ValuePtr charToInteger(const ValueList& params, EvalEnv& env);
+        ValuePtr integerToChar(const ValueList& params, EvalEnv& env);
+        ValuePtr charUpcase(const ValueList& params, EvalEnv& env);
+        ValuePtr charDowncase(const ValueList& params, EvalEnv& env);
+    }
+
+    namespace Vector
+    {
+        ValuePtr makeVector(const ValueList& params, EvalEnv& env);
+        ValuePtr _vector(const ValueList& params, EvalEnv& env);
+        ValuePtr vectorRef(const ValueList& params, EvalEnv& env);
+        ValuePtr vectorLength(const ValueList& params, EvalEnv& env);
+        ValuePtr vectorSet(const ValueList& params, EvalEnv& env);
+        ValuePtr vectorToList(const ValueList& params, EvalEnv& env);
+        ValuePtr listToVector(const ValueList& params, EvalEnv& env);
+        ValuePtr vectorFill(const ValueList& params, EvalEnv& env);
     }
 
     namespace String

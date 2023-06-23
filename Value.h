@@ -63,9 +63,11 @@ public:
     virtual optional<string> asSymbol() const;
     virtual optional<double> asNumber() const;
     explicit virtual operator bool();
+    virtual ValuePtr copy() const = 0;
 protected:
     Value() {}
     virtual string extractString(bool isOnRight) const;
+    virtual string extractDisplayString(bool isOnRight) const;
     virtual ~Value() = default;
 };
 
@@ -79,6 +81,7 @@ public:
     string toString() const override;
     int getTypeID() const override;
     explicit operator bool() override;
+    ValuePtr copy() const override;
 };
 
 class NumericValue
@@ -92,6 +95,7 @@ public:
     int getTypeID() const override;
     bool isInteger() const;
     optional<double> asNumber() const override;
+    ValuePtr copy() const override;
 };
 
 class CharValue
@@ -105,6 +109,7 @@ public:
     string toDisplayString() const override;
     int getTypeID() const override;
     char value() const;
+    ValuePtr copy() const override;
 };
 
 class StringValue
@@ -121,6 +126,7 @@ public:
     string& value();
     const string& value() const;
     char& at(long long index);
+    ValuePtr copy() const override;
 };
 
 class ListValue
@@ -142,8 +148,10 @@ public:
     int getTypeID() const override;
     ValueList toVector() override;
     bool isList() override;
+    ValuePtr copy() const override;
 protected:
     string extractString(bool isOnRight) const override;
+    string extractDisplayString(bool isOnRight) const override;
 };
 
 class VectorValue
@@ -156,9 +164,11 @@ public:
     VectorValue(ValueList&& value)
         :vecValue(value) {}
     string toString() const override;
+    string toDisplayString() const override;
     int getTypeID() const override;
     ValueList& value();
     ValuePtr& at(long long index);
+    ValuePtr copy() const override;
 };
 
 class SymbolValue
@@ -171,6 +181,7 @@ public:
     string toString() const override;
     int getTypeID() const override;
     optional<string> asSymbol() const override;
+    ValuePtr copy() const override;
 };
 
 class PairValue
@@ -182,13 +193,16 @@ public:
     PairValue(ValuePtr pLeft, ValuePtr pRight)
         :pLeftValue{ pLeft }, pRightValue{ pRight } {}
     string toString() const override;
+    string toDisplayString() const override;
     int getTypeID() const override;
     ValueList toVector() override;
     ValuePtr left();
     ValuePtr right();
     bool isList() override;
+    ValuePtr copy() const override;
 protected:
     string extractString(bool isOnRight) const override;
+    string extractDisplayString(bool isOnRight) const override;
 };
 
 template<typename Iter>
@@ -203,6 +217,7 @@ shared_ptr<ListValue> createListFromIter(Iter begin, Iter end)
 using FuncType = std::function<ValuePtr(const ValueList&, EvalEnv&)>;
 using FuncPtr = FuncType*;
 
+/*
 class ParamChecker
 {
     int minCount;
@@ -218,6 +233,7 @@ public:
         :minCount{ minCount }, maxCount{ maxCount }, paramType{ paramType } {}
     bool isValid(const ValueList& params);
 };
+*/
 
 class CallableValue
     :public Value
@@ -229,7 +245,7 @@ protected:
     vector<int> paramType;
 public:
     const static int UnlimitedCnt = -1;
-    const static int SameToRest = -1;
+    const static int SameToRest = 0;
     const static vector<int> UnlimitedType;
     CallableValue(FuncType procedure, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt, vector<int> type = UnlimitedType)
         :proc(procedure), minParamCnt(minArgs), maxParamCnt(maxArgs), paramType(type) {}
@@ -256,6 +272,7 @@ public:
     using ProcValue::ProcValue;
     int getTypeID() const override;
     static void assertParamCnt(const ValueList& params, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt);
+    ValuePtr copy() const override;
 protected:
     virtual void checkValidParamCnt(const ValueList& params) override;
 };
@@ -272,6 +289,7 @@ public:
     int getTypeID() const override;
     ValuePtr call(const ValueList& params, EvalEnv& env) override;
     static void assertParamCnt(const ValueList& params, int argCnt = UnlimitedCnt);
+    ValuePtr copy() const override;
 protected:
     virtual void checkValidParamCnt(const ValueList& params) override;
     EnvPtr prepareEvalEnv(const ValueList& params);
@@ -285,6 +303,7 @@ public:
     int getTypeID() const override;
     string toString() const override;
     static void assertParamCnt(const ValueList& params, int minArgs = UnlimitedCnt, int maxArgs = UnlimitedCnt);
+    ValuePtr copy() const override;
 protected:
     virtual void checkValidParamCnt(const ValueList& params) override;
 };
@@ -302,6 +321,7 @@ public:
     int getTypeID() const override;
     string toString() const override;
     ValuePtr force(EvalEnv& env);
+    ValuePtr copy() const override;
 };
 
 #endif

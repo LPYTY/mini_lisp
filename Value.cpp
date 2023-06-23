@@ -61,6 +61,11 @@ BooleanValue::operator bool()
     return bValue;
 }
 
+ValuePtr BooleanValue::copy() const
+{
+    return make_shared<BooleanValue>(bValue);
+}
+
 bool NumericValue::isInteger() const
 {
     return static_cast<long long>(dValue) == dValue;
@@ -79,6 +84,11 @@ int NumericValue::getTypeID() const
 optional<double> NumericValue::asNumber() const
 {
     return dValue;
+}
+
+ValuePtr NumericValue::copy() const
+{
+    return make_shared<NumericValue>(dValue);
 }
 
 string StringValue::escChars = { '\"', '\\' };
@@ -139,6 +149,11 @@ char& StringValue::at(long long index)
     return szValue[index];
 }
 
+ValuePtr StringValue::copy() const
+{
+    return make_shared<StringValue>(szValue);
+}
+
 string NilValue::toString() const
 {
     return "()";
@@ -159,7 +174,17 @@ bool NilValue::isList()
     return true;
 }
 
+ValuePtr NilValue::copy() const
+{
+    return make_shared<NilValue>();
+}
+
 string NilValue::extractString(bool isOnRight) const
+{
+    return isOnRight ? "" : "()";
+}
+
+string NilValue::extractDisplayString(bool isOnRight) const
 {
     return isOnRight ? "" : "()";
 }
@@ -179,9 +204,19 @@ optional<string> SymbolValue::asSymbol() const
     return szSymbolName;
 }
 
+ValuePtr SymbolValue::copy() const
+{
+    return make_shared<SymbolValue>(szSymbolName);
+}
+
 string PairValue::toString() const
 {
     return '(' + extractString(false) + ')';
+}
+
+string PairValue::toDisplayString() const
+{
+    return '(' + extractDisplayString(false) + ')';
 }
 
 int PairValue::getTypeID() const
@@ -224,9 +259,19 @@ bool PairValue::isList()
     return pRightValue->isType(ValueType::NilType) || pRightValue->isType(ValueType::PairType) && static_pointer_cast<PairValue>(pRightValue)->isList();
 }
 
+ValuePtr PairValue::copy() const
+{
+    return make_shared<PairValue>(pLeftValue->copy(), pRightValue->copy());
+}
+
 string PairValue::extractString(bool isOnRight) const
 {
     return (isOnRight ? " " : "") + pLeftValue->toString() + pRightValue->extractString(true);
+}
+
+string PairValue::extractDisplayString(bool isOnRight) const
+{
+    return (isOnRight ? " " : "") + pLeftValue->toDisplayString() + pRightValue->extractDisplayString(true);
 }
 
 string Value::toDisplayString() const
@@ -264,6 +309,11 @@ string Value::extractString(bool isOnRight) const
     return (isOnRight ? " . " : "") + toString();
 }
 
+string Value::extractDisplayString(bool isOnRight) const
+{
+    return (isOnRight ? " . " : "") + toDisplayString();
+}
+
 const vector<int> CallableValue::UnlimitedType{ ValueType::AllType, CallableValue::SameToRest };
 
 ValuePtr CallableValue::call(const ValueList& args, EvalEnv& env)
@@ -299,7 +349,7 @@ void CallableValue::checkValidParamType(const ValueList& params)
     size_t checkSize = paramType.size();
     for (size_t i = 0; i < paramType.size(); i++)
     {
-        if (paramType[i] = SameToRest)
+        if (paramType[i] == SameToRest)
         {
             if (i == 0)
                 return;
@@ -347,6 +397,11 @@ void BuiltinProcValue::assertParamCnt(const ValueList& params, int minArgs, int 
     }
 }
 
+ValuePtr BuiltinProcValue::copy() const
+{
+    return make_shared<BuiltinProcValue>(proc, minParamCnt, maxParamCnt, paramType);
+}
+
 void BuiltinProcValue::checkValidParamCnt(const ValueList& params)
 {
     assertParamCnt(params, minParamCnt, maxParamCnt);
@@ -383,6 +438,11 @@ void SpecialFormValue::assertParamCnt(const ValueList& params, int minArgs, int 
     }
 }
 
+ValuePtr SpecialFormValue::copy() const
+{
+    return make_shared<SpecialFormValue>(proc, minParamCnt, maxParamCnt, paramType);
+}
+
 void SpecialFormValue::checkValidParamCnt(const ValueList& params)
 {
     assertParamCnt(params, minParamCnt, maxParamCnt);
@@ -417,6 +477,11 @@ void LambdaValue::assertParamCnt(const ValueList& params, int argCnt)
 {
     if (params.size() != argCnt)
         throw LispError("Procedure expected " + to_string(argCnt) + " parameters, got " + to_string(params.size()));
+}
+
+ValuePtr LambdaValue::copy() const
+{
+    return make_shared<LambdaValue>(paramNames, body, parentEnv);
 }
 
 void LambdaValue::checkValidParamCnt(const ValueList& params)
@@ -456,6 +521,14 @@ ValuePtr PromiseValue::force(EvalEnv& env)
     return value;
 }
 
+ValuePtr PromiseValue::copy() const
+{
+    auto result = make_shared<PromiseValue>(value->copy());
+    result->isEvaluated = isEvaluated;
+    return result;
+}
+
+/*
 const vector<int> ParamChecker::UnlimitedType = {};
 
 bool ParamChecker::isValid(const ValueList& params)
@@ -464,6 +537,7 @@ bool ParamChecker::isValid(const ValueList& params)
 
     return false;
 }
+*/
 
 string CharValue::toString() const
 {
@@ -491,12 +565,32 @@ char CharValue::value() const
     return cValue;
 }
 
+ValuePtr CharValue::copy() const
+{
+    return make_shared<CharValue>(cValue);
+}
+
 string VectorValue::toString() const
 {
     string result = "#(";
     for (size_t i = 0; i < vecValue.size(); i++)
     {
         result += vecValue[i]->toString();
+        if (i != vecValue.size() - 1)
+        {
+            result += ' ';
+        }
+    }
+    result += ')';
+    return result;
+}
+
+string VectorValue::toDisplayString() const
+{
+    string result = "#(";
+    for (size_t i = 0; i < vecValue.size(); i++)
+    {
+        result += vecValue[i]->toDisplayString();
         if (i != vecValue.size() - 1)
         {
             result += ' ';
@@ -521,4 +615,11 @@ ValuePtr& VectorValue::at(long long index)
     if (index < 0 || index >= vecValue.size())
         throw LispError("Index " + to_string(index) + " out of range");
     return vecValue[index];
+}
+
+ValuePtr VectorValue::copy() const
+{
+    ValueList result;
+    std::ranges::transform(vecValue, std::back_inserter(result), [](auto& a) {return a->copy(); });
+    return make_shared<VectorValue>(result);
 }

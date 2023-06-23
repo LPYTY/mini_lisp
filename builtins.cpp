@@ -28,6 +28,16 @@ namespace Builtin
             return ci(stringConv(value));
         }
 
+        char charConv(ValuePtr value)
+        {
+            return std::dynamic_pointer_cast<CharValue>(value)->value();
+        }
+
+        char charCiConv(ValuePtr value)
+        {
+            return std::tolower(std::dynamic_pointer_cast<CharValue>(value)->value());
+        }
+
         string ci(const string& s)
         {
             string result;
@@ -118,11 +128,14 @@ namespace Builtin
             if (params.size() == 0)
                 return make_shared<NilValue>();
             ValueList resultList;
-            for (const auto& p : params)
+            for (size_t i = 0; i < params.size(); i++)
             {
-                if (!p->isType(ValueType::ListType))
-                    throw LispError("Expect list, got " + p->toString());
-                auto curList = p->toVector();
+                auto curList = params[i]->toVector();
+                if (i != params.size() - 1)
+                    for (auto& p : curList)
+                    {
+                        p = p->copy();
+                    }
                 resultList.insert(resultList.end(), curList.begin(), curList.end());
             }
             return ListValue::fromVector(resultList);
@@ -144,7 +157,7 @@ namespace Builtin
 
         ValuePtr cons(const ValueList& params, EvalEnv& env)
         {
-            return make_shared<PairValue>(params[0], params[1]);
+            return make_shared<PairValue>(params[0]->copy(), params[1]->copy());
         }
 
         ValuePtr length(const ValueList& params, EvalEnv& env)
@@ -156,7 +169,9 @@ namespace Builtin
 
         ValuePtr list(const ValueList& params, EvalEnv& env)
         {
-            return ListValue::fromVector(params);
+            ValueList v;
+            std::ranges::transform(params, std::back_inserter(v), [](auto& p) {return p->copy(); });
+            return ListValue::fromVector(v);
         }
 
         ValuePtr map(const ValueList& params, EvalEnv& env)
@@ -505,6 +520,159 @@ namespace Builtin
         BuiltinFunc stringSmallerOrEqualCi = std::bind(compare<string>(), _1, std::less_equal<string>(), stringCiConv);
     }
 
+    namespace Char
+    {
+        BuiltinFunc charEqual = std::bind(compare<char>(), _1, isEqual<char>(), charConv);
+        BuiltinFunc charEqualCi = std::bind(compare<char>(), _1, isEqual<char>(), charCiConv);
+        BuiltinFunc charGreater = std::bind(compare<char>(), _1, std::greater<char>(), charConv);
+        BuiltinFunc charSmaller = std::bind(compare<char>(), _1, std::less<char>(), charConv);
+        BuiltinFunc charGreaterOrEqual = std::bind(compare<char>(), _1, std::greater_equal<char>(), charConv);
+        BuiltinFunc charSmallerOrEqual = std::bind(compare<char>(), _1, std::less_equal<char>(), charConv);
+        BuiltinFunc charGreaterCi = std::bind(compare<char>(), _1, std::greater<char>(), charCiConv);
+        BuiltinFunc charSmallerCi = std::bind(compare<char>(), _1, std::less<char>(), charCiConv);
+        BuiltinFunc charGreaterOrEqualCi = std::bind(compare<char>(), _1, std::greater_equal<char>(), charCiConv);
+        BuiltinFunc charSmallerOrEqualCi = std::bind(compare<char>(), _1, std::less_equal<char>(), charCiConv);
+
+        ValuePtr isCharAlphabetic(const ValueList& params, EvalEnv& env)
+        {
+            char c = std::dynamic_pointer_cast<CharValue>(params[0])->value();
+            return make_shared<BooleanValue>(std::isalpha(c));
+        }
+
+        ValuePtr isCharNumeric(const ValueList& params, EvalEnv& env)
+        {
+            char c = std::dynamic_pointer_cast<CharValue>(params[0])->value();
+            return make_shared<BooleanValue>(std::isdigit(c));
+        }
+
+        ValuePtr isCharWhitespace(const ValueList& params, EvalEnv& env)
+        {
+            char c = std::dynamic_pointer_cast<CharValue>(params[0])->value();
+            return make_shared<BooleanValue>(std::isspace(c));
+        }
+
+        ValuePtr isCharUpperCase(const ValueList& params, EvalEnv& env)
+        {
+            char c = std::dynamic_pointer_cast<CharValue>(params[0])->value();
+            return make_shared<BooleanValue>(std::isupper(c));
+        }
+
+        ValuePtr isCharLowerCase(const ValueList& params, EvalEnv& env)
+        {
+            char c = std::dynamic_pointer_cast<CharValue>(params[0])->value();
+            return make_shared<BooleanValue>(std::islower(c));
+        }
+
+        ValuePtr charToInteger(const ValueList& params, EvalEnv& env)
+        {
+            char c = std::dynamic_pointer_cast<CharValue>(params[0])->value();
+            return make_shared<NumericValue>(static_cast<long long>(c));
+        }
+
+        ValuePtr integerToChar(const ValueList& params, EvalEnv& env)
+        {
+            long long n = *params[0]->asNumber();
+            return make_shared<CharValue>(static_cast<char>(n));
+        }
+
+        ValuePtr charUpcase(const ValueList& params, EvalEnv& env)
+        {
+            char c = std::dynamic_pointer_cast<CharValue>(params[0])->value();
+            return make_shared<CharValue>(std::toupper(c));
+        }
+
+        ValuePtr charDowncase(const ValueList& params, EvalEnv& env)
+        {
+            char c = std::dynamic_pointer_cast<CharValue>(params[0])->value();
+            return make_shared<CharValue>(std::tolower(c));
+        }
+    }
+
+    namespace Vector
+    {
+        ValuePtr vectorFill(const ValueList& params, EvalEnv& env)
+        {
+            auto& v = std::dynamic_pointer_cast<VectorValue>(params[0])->value();
+            ValuePtr filler = params[1];
+            for (auto& p : v)
+            {
+                p = filler->copy();
+            }
+            return make_shared<NilValue>();
+        }
+
+        ValuePtr makeVector(const ValueList& params, EvalEnv& env)
+        {
+            auto n = std::dynamic_pointer_cast<NumericValue>(params[0]);
+            if (!n->isInteger())
+                throw LispError("k should be an integer");
+            long long k = *n->asNumber();
+            if (k < 0)
+                throw LispError("k should be non-negative");
+            ValuePtr filler;
+            if (params.size() >= 2)
+                filler = params[1];
+            else
+                filler = make_shared<NilValue>();
+            ValueList result;
+            for (long long i = 0; i < k; i++)
+                result.push_back(filler->copy());
+            return make_shared<VectorValue>(result);
+        }
+
+        ValuePtr _vector(const ValueList& params, EvalEnv& env)
+        {
+            return make_shared<VectorValue>(params);
+        }
+
+        ValuePtr vectorRef(const ValueList& params, EvalEnv& env)
+        {
+            auto v = std::dynamic_pointer_cast<VectorValue>(params[0]);
+            auto n = std::dynamic_pointer_cast<NumericValue>(params[1]);
+            if (!n->isInteger())
+                throw LispError("Index should be an integer");
+            long long index = *n->asNumber();
+            return v->at(index);
+        }
+
+        ValuePtr vectorLength(const ValueList& params, EvalEnv& env)
+        {
+            return make_shared<NumericValue>(std::dynamic_pointer_cast<VectorValue>(params[0])->value().size());
+        }
+
+        ValuePtr vectorSet(const ValueList& params, EvalEnv& env)
+        {
+            auto v = std::dynamic_pointer_cast<VectorValue>(params[0]);
+            auto n = std::dynamic_pointer_cast<NumericValue>(params[1]);
+            if (!n->isInteger())
+                throw LispError("Index should be an integer");
+            long long index = *n->asNumber();
+            auto& p = v->at(index);
+            p = params[2];
+            return make_shared<NilValue>();
+        }
+
+        ValuePtr vectorToList(const ValueList& params, EvalEnv& env)
+        {
+            auto v = std::dynamic_pointer_cast<VectorValue>(params[0])->value();
+            for (auto& p : v)
+            {
+                p = p->copy();
+            }
+            return ListValue::fromVector(v);
+        }
+
+        ValuePtr listToVector(const ValueList& params, EvalEnv& env)
+        {
+            auto v = params[0]->toVector();
+            for (auto& p : v)
+            {
+                p = p->copy();
+            }
+            return make_shared<VectorValue>(v);
+        }
+    }
+
     namespace Compare
     {
         ValuePtr eq(const ValueList& params, EvalEnv& env)
@@ -587,6 +755,8 @@ unordered_map<string, CallablePtr> allBuiltins =
     BuiltinItem("procedure?"s, Builtin::TypeCheck::isType<ValueType::ProcedureType>, 1, 1),
     BuiltinItem("string?"s, Builtin::TypeCheck::isType<ValueType::StringType>, 1, 1),
     BuiltinItem("symbol?"s, Builtin::TypeCheck::isType<ValueType::SymbolType>, 1, 1),
+    BuiltinItem("char?"s, Builtin::TypeCheck::isType<ValueType::CharType>, 1, 1),
+    BuiltinItem("vector?"s, Builtin::TypeCheck::isType<ValueType::VectorType>, 1, 1),
     BuiltinItem("integer?"s, Builtin::TypeCheck::isInteger, 1, 1),
     BuiltinItem("list?"s, Builtin::TypeCheck::isList, 1, 1),
 
@@ -624,6 +794,28 @@ unordered_map<string, CallablePtr> allBuiltins =
     BuiltinItem("odd?"s, Builtin::Compare::isOdd, 1, 1, {ValueType::NumericType, ValueType::NumericType}),
     BuiltinItem("zero?"s, Builtin::Compare::isZero, 1, 1, {ValueType::NumericType, ValueType::NumericType}),
 
+    BuiltinItem("char=?"s,Builtin::Char::charEqual,2,2,{ValueType::CharType,ValueType::CharType}),
+    BuiltinItem("char-ci=?"s,Builtin::Char::charEqualCi,2,2,{ValueType::CharType,ValueType::CharType}),
+    BuiltinItem("char>?"s,Builtin::Char::charGreater,2,2,{ValueType::CharType,ValueType::CharType}),
+    BuiltinItem("char<?"s,Builtin::Char::charSmaller,2,2,{ValueType::CharType,ValueType::CharType}),
+    BuiltinItem("char>=?"s,Builtin::Char::charGreaterOrEqual,2,2,{ValueType::CharType,ValueType::CharType}),
+    BuiltinItem("char<=?"s,Builtin::Char::charSmallerOrEqual,2,2,{ValueType::CharType,ValueType::CharType}),
+    BuiltinItem("char-ci>?"s,Builtin::Char::charGreaterCi,2,2,{ValueType::CharType,ValueType::CharType}),
+    BuiltinItem("char-ci<?"s,Builtin::Char::charSmallerCi,2,2,{ValueType::CharType,ValueType::CharType}),
+    BuiltinItem("char-ci>=?"s,Builtin::Char::charGreaterOrEqualCi,2,2,{ValueType::CharType,ValueType::CharType}),
+    BuiltinItem("char-ci<=?"s,Builtin::Char::charSmallerOrEqualCi,2,2,{ValueType::CharType,ValueType::CharType}),
+    BuiltinItem("char-alphabetic?"s, Builtin::Char::isCharAlphabetic, 1, 1, {ValueType::CharType}),
+    BuiltinItem("char-numeric?"s, Builtin::Char::isCharNumeric, 1, 1, {ValueType::CharType}),
+    BuiltinItem("char-whitespace?"s, Builtin::Char::isCharWhitespace, 1, 1, {ValueType::CharType}),
+    BuiltinItem("char-uppercase?"s, Builtin::Char::isCharUpperCase, 1, 1, {ValueType::CharType}),
+    BuiltinItem("char-lowercase?"s, Builtin::Char::isCharLowerCase, 1, 1, {ValueType::CharType}),
+    BuiltinItem("char->integer"s, Builtin::Char::charToInteger, 1, 1, {ValueType::CharType}),
+    BuiltinItem("integer->char"s, Builtin::Char::integerToChar, 1, 1, {ValueType::NumericType}),
+    BuiltinItem("char-upcase"s, Builtin::Char::charUpcase, 1, 1,{ValueType::CharType}),
+    BuiltinItem("char-downcase"s, Builtin::Char::charDowncase, 1, 1,{ValueType::CharType}),
+
+
+
     BuiltinItem("make-string"s, Builtin::String::makeString, 1,2,{ValueType::NumericType,ValueType::CharType}),
     BuiltinItem("string"s,Builtin::String::_string,CallableValue::UnlimitedCnt,CallableValue::UnlimitedCnt,{ValueType::CharType,CallableValue::SameToRest}),
     BuiltinItem("string-length"s,Builtin::String::stringLength,1,1,{ValueType::StringType}),
@@ -646,5 +838,15 @@ unordered_map<string, CallablePtr> allBuiltins =
     BuiltinItem("string-copy"s,Builtin::String::stringCopy,1,1,{ValueType::StringType}),
     BuiltinItem("string-fill!"s,Builtin::String::stringFill,2,2,{ValueType::StringType,ValueType::CharType}),
 
+    BuiltinItem("make-vector"s, Builtin::Vector::makeVector, 1, 2, {ValueType::NumericType, ValueType::AllType}),
+    BuiltinItem("vector"s, Builtin::Vector::_vector),
+    BuiltinItem("vector-length"s, Builtin::Vector::vectorLength, 1, 1, { ValueType::VectorType }),
+    BuiltinItem("vector-ref"s, Builtin::Vector::vectorRef, 2, 2, { ValueType::VectorType,ValueType::NumericType }),
+    BuiltinItem("vector-set!"s, Builtin::Vector::vectorSet, 3, 3, { ValueType::VectorType,ValueType::NumericType,ValueType::AllType }),
+    BuiltinItem("vector->list"s, Builtin::Vector::vectorToList, 1, 1, { ValueType::VectorType }),
+    BuiltinItem("list->vector"s, Builtin::Vector::listToVector, 1, 1, { ValueType::ListType }),
+    BuiltinItem("vector-fill!"s, Builtin::Vector::vectorFill, 2, 2, { ValueType::VectorType,ValueType::AllType }),
+
     BuiltinItem("force"s, Builtin::Control::force,1,1,{ValueType::PromiseType}),
 };
+

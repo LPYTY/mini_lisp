@@ -334,7 +334,7 @@ using namespace std::literals;
 const unordered_map<string, FormPtr> allSpecialForms =
 {
     SpecialFormItem("lambda"s, SpecialForm::Primary::lambdaForm, 2, CallableValue::UnlimitedCnt, {ValueType::ListType}),
-    SpecialFormItem("define"s, SpecialForm::Primary::defineForm, 2, CallableValue::UnlimitedCnt, {ValueType::SymbolType, ValueType::AllType}),
+    SpecialFormItem("define"s, SpecialForm::Primary::defineForm, 2, CallableValue::UnlimitedCnt, {ValueType::AllType}),
     SpecialFormItem("quote"s, SpecialForm::Primary::quoteForm, 1, 1),
     SpecialFormItem("if"s, SpecialForm::Primary::ifForm, 2, 3),
     SpecialFormItem("set!"s, SpecialForm::Primary::setForm, 2, 2, {ValueType::SymbolType, ValueType::AllType}),

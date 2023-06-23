@@ -11,7 +11,7 @@
 #define __ENABLE_TEST
 #endif // defined(DEBUG) || defined(_DEBUG)
 
-//#define __DO_RJSJ_TEST
+#define __DO_RJSJ_TEST
 
 #ifdef __ENABLE_TEST
 #include "./rjsj_test.hpp"
